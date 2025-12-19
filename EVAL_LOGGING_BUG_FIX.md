@@ -58,7 +58,7 @@ while step < args.steps:
 
 ### Code Change
 
-Added two lines immediately after evaluation in `embodied/run/train_eval.py` (line 166-168):
+Added two lines immediately after evaluation in `embodied/run/train_eval.py` (lines 167-168):
 
 ```python
 while step < args.steps:
