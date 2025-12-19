@@ -89,6 +89,11 @@ def _create_subactor(self):
         new_config.encoder["cnn_keys"] = ".*"
         new_config.decoder["cnn_keys"] = ".*"
     
+    # Determine whether to use separate world model for this subactor
+    use_world_model = (
+        new_config.higher_level_wm and new_config.hierarchical_world_models
+    )
+    
     # Append new subactor to the hierarchy
     self._subactors.append(
         SubActor(
@@ -97,7 +102,7 @@ def _create_subactor(self):
             {"action": embodied.Space(np.float32, self._subgoal_shape)},  # Action space is subgoal
             self._subgoal_shape,                            # Subgoal shape
             new_config,                                     # Modified configuration
-            make_replay(
+            make_replay(                                    # Helper function to create replay buffer
                 self._config,
                 self._config.traindir / f"replay-{len(self._subactors)}",
             ),                                              # Separate replay buffer
