@@ -157,6 +157,11 @@ def train_eval(agent, train_env, eval_env, train_replay, eval_replay, logger, ar
 
     # Below version doesn't use torch.no_grad, causing potential OOM. Don't know why it is here.
     # policy_eval = lambda *args: agent.policy(*args, mode="eval")
+    
+    # Use adaptive chunk size to ensure evaluation checkpoints are checked
+    # Set chunk size to a fraction of eval_every to ensure we check frequently enough
+    chunk_size = min(100, max(1, args.eval_every)) if args.eval_every > 0 else 100
+    
     while step < args.steps:
         if should_eval(step):
             print("Starting evaluation at step", int(step))
@@ -166,7 +171,7 @@ def train_eval(agent, train_env, eval_env, train_replay, eval_replay, logger, ar
             # Log evaluation metrics immediately at the correct step
             logger.add(metrics.result())
             logger.write()
-        driver_train(policy_train, steps=100)
+        driver_train(policy_train, steps=chunk_size)
         if should_save(step):
             checkpoint.save()
     logger.write()
