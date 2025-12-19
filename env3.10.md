@@ -28,7 +28,7 @@ Change the "wandb_name", "wandb_prefix" in hieros/config.yml to your desired nam
 
 2. Minimal test (small model size, fewer steps)
 ```
-python hieros/train.py --configs atari100k small_model_size_old --task=atari_alien --steps=400 --eval_every=200 --eval_eps 1 --batch_size=4 --batch_length=16
+python hieros/train.py --configs atari100k small_model_size_old --task=atari_alien --steps=400 --eval_every=200 --eval_eps=1 --batch_size=4 --batch_length=16
 ```
 
 3. Running Baseline

@@ -2,7 +2,7 @@ Tier 1: Smoke test
 Purpose: Code logic & GPU memory
 ```
 python hieros/train.py --configs atari100k --task=atari_pong
---steps=1000 --eval_every=500 --eval_eps=1 --log_every=100 --batch_size=4 --batch_length=16
+--steps=1000 --eval_every=500 --eval_eps=1 --log_every=1000 --batch_size=4 --batch_length=16
 ```
 
 Tier 2: Pilot run

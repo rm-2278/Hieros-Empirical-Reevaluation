@@ -12,7 +12,8 @@ def train_eval(agent, train_env, eval_env, train_replay, eval_replay, logger, ar
     print("Logdir", logdir)
     should_expl = embodied.when.Until(args.expl_until)
     should_train = embodied.when.Ratio(args.train_ratio / args.batch_steps)
-    should_log = embodied.when.Clock(args.log_every)
+    # should_log = embodied.when.Clock(args.log_every)
+    should_log = embodied.when.Every(args.log_every)
     should_save = embodied.when.Clock(args.save_every)
     should_eval = embodied.when.Every(args.eval_every, args.eval_initial)
     should_sync = embodied.when.Every(args.sync_every)
@@ -157,17 +158,35 @@ def train_eval(agent, train_env, eval_env, train_replay, eval_replay, logger, ar
 
     # Below version doesn't use torch.no_grad, causing potential OOM. Don't know why it is here.
     # policy_eval = lambda *args: agent.policy(*args, mode="eval")
-    while step < args.steps:
+
+    # This causes the evaluation metric logging to be delayed.
+    # while step < args.steps:
+    #     if should_eval(step):
+    #         print("Starting evaluation at step", int(step))
+    #         driver_eval.reset()
+    #         # for _ in tqdm(range(args.eval_eps)):
+    #         driver_eval(policy_eval, episodes=max(len(eval_env), args.eval_eps))
+    #         # Log evaluation metrics immediately at the correct step
+    #         logger.add(metrics.result())
+    #         logger.write()
+    #     driver_train(policy_train, steps=100)
+    #     if should_save(step):
+    #         checkpoint.save()
+    
+    while True:
         if should_eval(step):
             print("Starting evaluation at step", int(step))
             driver_eval.reset()
-            # for _ in tqdm(range(args.eval_eps)):
             driver_eval(policy_eval, episodes=max(len(eval_env), args.eval_eps))
-            # Log evaluation metrics immediately at the correct step
             logger.add(metrics.result())
             logger.write()
+        
+        if step >= args.steps:
+            break
+
         driver_train(policy_train, steps=100)
         if should_save(step):
             checkpoint.save()
+
     logger.write()
     logger.write()
