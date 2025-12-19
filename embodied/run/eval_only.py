@@ -8,7 +8,7 @@ def eval_only(agent, env, logger, args):
     logdir = embodied.Path(args.logdir)
     logdir.mkdirs()
     print("Logdir", logdir)
-    should_log = embodied.when.Clock(args.log_every)
+    should_log = embodied.when.Every(args.log_every)
     step = logger.step
     metrics = embodied.Metrics()
     print("Observation space:", env.obs_space)

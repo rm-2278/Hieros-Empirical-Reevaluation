@@ -35,7 +35,7 @@ def actor(step, agent, replay, logger, actor_addr, args):
     metrics = embodied.Metrics()
     scalars = defaultdict(lambda: defaultdict(list))
     videos = defaultdict(lambda: defaultdict(list))
-    should_log = embodied.when.Clock(args.log_every)
+    should_log = embodied.when.Every(args.log_every)
 
     _, initial = agent.policy(dummy_data(agent.agent.obs_space, (args.actor_batch,)))
     initial = embodied.treemap(lambda x: x[0], initial)
@@ -87,7 +87,7 @@ def actor(step, agent, replay, logger, actor_addr, args):
 def learner(step, agent, replay, logger, timer, args):
     logdir = embodied.Path(args.logdir)
     metrics = embodied.Metrics()
-    should_log = embodied.when.Clock(args.log_every)
+    should_log = embodied.when.Every(args.log_every)
     should_save = embodied.when.Clock(args.save_every)
     should_sync = embodied.when.Every(args.sync_every)
     updates = embodied.Counter()
