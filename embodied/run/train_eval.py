@@ -163,6 +163,9 @@ def train_eval(agent, train_env, eval_env, train_replay, eval_replay, logger, ar
             driver_eval.reset()
             # for _ in tqdm(range(args.eval_eps)):
             driver_eval(policy_eval, episodes=max(len(eval_env), args.eval_eps))
+            # Log evaluation metrics immediately at the correct step
+            logger.add(metrics.result())
+            logger.write()
         driver_train(policy_train, steps=100)
         if should_save(step):
             checkpoint.save()
