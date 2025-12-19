@@ -55,3 +55,14 @@ The repository is structured as follows:
 - `resettable_s5/` contains our implementation of the resettable S5 model used for the S5WM. This is based on the [pytorch s5 implementation](https://github.com/i404788/s5-pytorch)
 - `experiments/` contains wandb sweep configurations for the experiments in the paper.
 - `sampler_visualization.py` contains code to visualize the sampling methods used in the paper (ETBS and the standard uniform sampling).
+- `documentation/` contains research papers and technical documentation.
+
+# Documentation
+
+For a detailed explanation of the hierarchical subactor architecture in Hieros, including:
+- How many subactors are created
+- Where and when they are created
+- The purpose of the hierarchical structure
+- Comparison with DreamerV3 and S5 architectures
+
+See **[SUBACTOR_ARCHITECTURE.md](SUBACTOR_ARCHITECTURE.md)** for comprehensive technical documentation.
