@@ -274,6 +274,18 @@ atari100k:
   imag_gradient: 'reinforce'
   time_limit: 54000
 
+pinpad:
+  steps: 4e5
+  envs:
+    amount: 1
+  action_repeat: 2
+  eval_every: 5e4
+  eval_eps: 10
+  log_every: 1e3
+  batch_size: 8
+  batch_length: 16
+  train_ratio: 512
+  wandb_logging: false
 
 debug:
   debug: True

@@ -17,6 +17,12 @@ pip install -r requirements.txt
 bash embodied/scripts/install-atari.sh
 ```
 
+1.1. Setup for pinpad
+```
+pip uninstall mujoco
+pip install mujoco==2.3.7
+```
+
 1.5. How to use w&b
 login to your wandb account:
 ```
