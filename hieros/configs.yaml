@@ -275,6 +275,7 @@ atari100k:
   time_limit: 54000
 
 pinpad:
+  task: 'pinpad_three'
   steps: 4e5
   envs:
     amount: 1
@@ -286,6 +287,8 @@ pinpad:
   batch_length: 16
   train_ratio: 512
   wandb_logging: false
+  actor_dist: 'onehot'
+  imag_gradient: 'reinforce'
 
 debug:
   debug: True
