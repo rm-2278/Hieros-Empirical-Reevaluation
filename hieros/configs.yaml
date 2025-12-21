@@ -1,6 +1,7 @@
 defaults:
 
-  model_name: "hieros"
+  # model_name: "hieros"
+  model_name: "dreamer"
   logdir: null
   traindir: null
   evaldir: null
@@ -119,7 +120,7 @@ defaults:
     minecraft: {size: [64, 64], break_speed: 100.0}
     dmc: {size: [64, 64], repeat: 2, camera: -1}
     loconav: {size: [64, 64], repeat: 2, camera: -1}
-    pinpad: {length: 10000}
+    pinpad: {}
 
   # Model
   dynamics_model: "s5"
@@ -262,7 +263,7 @@ atari100k:
     atari: {gray: False, repeat: 4, sticky: False, noops: 30, actions: needed}
   action_repeat: 4
   eval_eps: 100
-  stickey: False
+  sticky: False
   eval_every: 2e5
   lives: unused
   noops: 30
@@ -272,19 +273,29 @@ atari100k:
   train_ratio: 1024
   imag_gradient: 'reinforce'
   time_limit: 54000
+  wandb_name: 'pinpad_three'
+  wandb_prefix: 'pyramidal'
+  wandb_logging: false
+  model_name: "dreamer"
 
 pinpad:
-  steps: 4e5
+  task: 'pinpad_three'
+  steps: 2000000
   envs:
     amount: 1
   action_repeat: 2
-  eval_every: 5e4
+  actor_dist: 'onehot'
+  imag_gradient: 'reinforce'
+  eval_every: 200000
   eval_eps: 10
-  log_every: 1e3
+  log_every: 5000
   batch_size: 8
   batch_length: 16
-  train_ratio: 512
+  train_ratio: 16
   wandb_logging: false
+  wandb_name: 'pinpad_three'
+  wandb_prefix: 'pyramidal'
+  model_name: "dreamer"
 
 debug:
   debug: True

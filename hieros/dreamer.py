@@ -37,7 +37,7 @@ class Dreamer(nn.Module):
         self._update_count = 0
 
         self._replay = replay
-        self._dataset = self.dataset(self._replay.dataset)
+        # self._dataset = self.dataset(self._replay.dataset)
         # Schedules.
         config.actor_entropy = lambda x=config.actor_entropy: tools.schedule(
             x, self._step
@@ -112,7 +112,8 @@ class Dreamer(nn.Module):
         return value
 
     def train(self, data=None, state=None):
-        mets = self._train(next(self._dataset))
+        mets = self._train(data)
+        # mets = self._train(next(self._dataset))
         self._update_count += 1
         mets["update_count"] = self._update_count
         to_cpu = (

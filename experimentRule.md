@@ -13,7 +13,7 @@ python hieros/train.py --configs atari100k --task=atari_pong --steps=10000 --eva
 
 Tier 2.5: Longer pilot run
 ```
-python hieros/train.py --configs atari100k --task=atari_pong --steps=40000 --eval_every=10000 --eval_eps=5 --batch_size=8 --batch_length=32
+python hieros/train.py --configs atari100k --task=atari_pong --steps=200000 --eval_every=50000 --eval_eps=5 --batch_size=8 --batch_length=32
 ```
 (2h 5m 53s on RTX 5070)
 
