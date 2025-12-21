@@ -196,6 +196,8 @@ def main(config):
     if (logdir / "latest_model.pt").exists():
         agent.load_state_dict(torch.load(logdir / "latest_model.pt"))
         agent._should_pretrain._once = False
+    # Note: Dreamer doesn't use PyTorch's train/eval modes - it manages training state internally
+    # Calling agent.eval() would conflict with Dreamer's custom train(data, state) method
     if config.model_name != "dreamer":
         agent.set_eval()
     if config.pretrain:
