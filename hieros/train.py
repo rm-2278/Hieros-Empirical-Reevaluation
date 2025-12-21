@@ -199,13 +199,11 @@ def main(config):
     if config.model_name != "dreamer":
         agent.set_eval()
     if config.pretrain:
-        print("pretraining for", config.pretrain, "steps...")
-        for _ in tqdm(range(config.pretrain)):
-            if config.model_name == "dreamer":
-                # Dreamer's train() method is for training steps, not PyTorch's train mode
-                # Pretrain functionality not implemented for Dreamer
-                pass
-            else:
+        if config.model_name == "dreamer":
+            print("Note: Pretrain functionality not available for Dreamer model (skipping)")
+        else:
+            print("pretraining for", config.pretrain, "steps...")
+            for _ in tqdm(range(config.pretrain)):
                 agent.train()
     config.batch_steps = config.batch_size * config.batch_length
 
