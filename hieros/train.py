@@ -323,6 +323,8 @@ def autoregression_loss_curve(model, data):
     return np.array(errors)
 
 
+
+# Process command line arguments and run main().
 if __name__ == "__main__":
     import lovely_tensors as lt
 

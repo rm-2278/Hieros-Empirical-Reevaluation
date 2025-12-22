@@ -158,7 +158,7 @@ def simulate(agent, envs, steps=0, episodes=0, state=None, replay=None, config=N
     while (steps and step < steps) or (episodes and episode < episodes):
         if done.any():
             reward = [reward[i] * (1 - done[i]) for i in range(len(envs))]
-        action = agent(obs, done, reward)
+        action = agent(obs, done, reward) # action-state is stored via the agent (see train.py)
         action = {k: embodied.convert(action[k]) for k in action}
         action["reset"] = done
         results = envs.step(action)
