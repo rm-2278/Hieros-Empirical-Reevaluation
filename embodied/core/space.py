@@ -2,8 +2,8 @@ import numpy as np
 
 
 class Space:
-    def __init__(self, dtype, shape=(), low=None, high=None):
-        # For integer types, high is the excluside upper bound.
+    def __init__(self, dtype, shape=(), low=None, high=None, seed=None):
+        # For integer types, high is the exclusive upper bound.
         shape = (shape,) if isinstance(shape, int) else shape
         self._dtype = np.dtype(dtype)
         assert self._dtype is not object, self._dtype
@@ -12,7 +12,7 @@ class Space:
         self._high = self._infer_high(dtype, shape, low, high)
         self._shape = self._infer_shape(dtype, shape, low, high)
         self._discrete = np.issubdtype(self.dtype, np.integer) or self.dtype == bool
-        self._random = np.random.RandomState()
+        self._random = np.random.RandomState(seed)
 
     @property
     def dtype(self):

@@ -16,7 +16,7 @@ class PinPad(embodied.Env):
         "8": (0, 128, 128),
     }
 
-    def __init__(self, task, length=10000):
+    def __init__(self, task, length=10000, seed=None):
         assert length > 0
         layout = {
             "three": LAYOUT_THREE,
@@ -29,7 +29,8 @@ class PinPad(embodied.Env):
         self.layout = np.array([list(line) for line in layout.split("\n")]).T
         assert self.layout.shape == (16, 14), self.layout.shape
         self.length = length
-        self.random = np.random.RandomState()
+        self._seed = seed
+        self.random = np.random.RandomState(seed)
         self.pads = set(self.layout.flatten().tolist()) - set("* #\n")
         self.target = tuple(sorted(self.pads))
         self.spawns = []
@@ -42,23 +43,26 @@ class PinPad(embodied.Env):
         self.steps = None
         self.done = None
         self.countdown = None
+        # Cache spaces with seed
+        self._act_space = {
+            "action": embodied.Space(np.int64, (), 0, 5, seed=seed),
+            "reset": embodied.Space(bool, seed=seed),
+        }
+        self._obs_space = {
+            "image": embodied.Space(np.uint8, (64, 64, 3), seed=seed),
+            "reward": embodied.Space(np.float32, seed=seed),
+            "is_first": embodied.Space(bool, seed=seed),
+            "is_last": embodied.Space(bool, seed=seed),
+            "is_terminal": embodied.Space(bool, seed=seed),
+        }
 
     @property
     def act_space(self):
-        return {
-            "action": embodied.Space(np.int64, (), 0, 5),
-            "reset": embodied.Space(bool),
-        }
+        return self._act_space
 
     @property
     def obs_space(self):
-        return {
-            "image": embodied.Space(np.uint8, (64, 64, 3)),
-            "reward": embodied.Space(np.float32),
-            "is_first": embodied.Space(bool),
-            "is_last": embodied.Space(bool),
-            "is_terminal": embodied.Space(bool),
-        }
+        return self._obs_space
 
     def step(self, action):
         if self.done or action["reset"]:

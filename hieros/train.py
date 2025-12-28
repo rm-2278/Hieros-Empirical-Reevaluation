@@ -275,6 +275,9 @@ def make_env(config, **overrides):
         ctor = getattr(module, cls)
     kwargs = config.env.get(suite, {})
     kwargs.update(overrides)
+    # Add seed to environment kwargs if available in config and not already present
+    if hasattr(config, 'seed') and 'seed' not in kwargs:
+        kwargs['seed'] = config.seed
     env = ctor(task, **kwargs)
     return wrap_env(env, config)
 

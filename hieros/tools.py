@@ -4,6 +4,7 @@ import io
 import json
 import pathlib
 import pickle
+import random
 import re
 import time
 import uuid
@@ -27,6 +28,7 @@ from torch.optim.lr_scheduler import (
 
 def set_seed(seed):
     """Set random seed for reproducibility across all libraries."""
+    random.seed(seed)
     torch.manual_seed(seed)
     np.random.seed(seed)
     if torch.cuda.is_available():

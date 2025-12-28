@@ -80,7 +80,8 @@ class NormalizeAction(base.Wrapper):
     def act_space(self):
         low = np.where(self._mask, -np.ones_like(self._low), self._low)
         high = np.where(self._mask, np.ones_like(self._low), self._high)
-        space = spacelib.Space(np.float32, self._space.shape, low, high)
+        seed = getattr(self.env, '_seed', None)
+        space = spacelib.Space(np.float32, self._space.shape, low, high, seed=seed)
         return {**self.env.act_space, self._key: space}
 
     def step(self, action):
@@ -98,7 +99,8 @@ class OneHotAction(base.Wrapper):
     @functools.cached_property
     def act_space(self):
         shape = (self._count,)
-        space = spacelib.Space(np.float32, shape, 0, 1)
+        seed = getattr(self.env, '_seed', None)
+        space = spacelib.Space(np.float32, shape, 0, 1, seed=seed)
         space.sample = functools.partial(self._sample_action, self._count)
         space._discrete = True
         return {**self.env.act_space, self._key: space}
@@ -122,18 +124,19 @@ class OneHotAction(base.Wrapper):
 class ExpandScalars(base.Wrapper):
     def __init__(self, env):
         super().__init__(env)
+        seed = getattr(env, '_seed', None)
         self._obs_expanded = []
         self._obs_space = {}
         for key, space in self.env.obs_space.items():
             if space.shape == () and key != "reward" and not space.discrete:
-                space = spacelib.Space(space.dtype, (1,), space.low, space.high)
+                space = spacelib.Space(space.dtype, (1,), space.low, space.high, seed=seed)
                 self._obs_expanded.append(key)
             self._obs_space[key] = space
         self._act_expanded = []
         self._act_space = {}
         for key, space in self.env.act_space.items():
             if space.shape == () and not space.discrete:
-                space = spacelib.Space(space.dtype, (1,), space.low, space.high)
+                space = spacelib.Space(space.dtype, (1,), space.low, space.high, seed=seed)
                 self._act_expanded.append(key)
             self._act_space[key] = space
 
@@ -161,6 +164,7 @@ class ExpandScalars(base.Wrapper):
 class FlattenTwoDimObs(base.Wrapper):
     def __init__(self, env):
         super().__init__(env)
+        seed = getattr(env, '_seed', None)
         self._keys = []
         self._obs_space = {}
         for key, space in self.env.obs_space.items():
@@ -170,6 +174,7 @@ class FlattenTwoDimObs(base.Wrapper):
                     (int(np.prod(space.shape)),),
                     space.low.flatten(),
                     space.high.flatten(),
+                    seed=seed,
                 )
                 self._keys.append(key)
             self._obs_space[key] = space
@@ -188,6 +193,7 @@ class FlattenTwoDimObs(base.Wrapper):
 class FlattenTwoDimActions(base.Wrapper):
     def __init__(self, env):
         super().__init__(env)
+        seed = getattr(env, '_seed', None)
         self._origs = {}
         self._act_space = {}
         for key, space in self.env.act_space.items():
@@ -197,6 +203,7 @@ class FlattenTwoDimActions(base.Wrapper):
                     (int(np.prod(space.shape)),),
                     space.low.flatten(),
                     space.high.flatten(),
+                    seed=seed,
                 )
                 self._origs[key] = space.shape
             self._act_space[key] = space
@@ -250,7 +257,8 @@ class DiscretizeAction(base.Wrapper):
     @functools.cached_property
     def act_space(self):
         shape = (self._dims, len(self._values))
-        space = spacelib.Space(np.float32, shape, 0, 1)
+        seed = getattr(self.env, '_seed', None)
+        space = spacelib.Space(np.float32, shape, 0, 1, seed=seed)
         space.sample = functools.partial(self._sample_action, self._dims, self._values)
         space._discrete = True
         return {**self.env.act_space, self._key: space}
@@ -288,9 +296,10 @@ class ResizeImage(base.Wrapper):
     @functools.cached_property
     def obs_space(self):
         spaces = self.env.obs_space
+        seed = getattr(self.env, '_seed', None)
         for key in self._keys:
             shape = self._size + spaces[key].shape[2:]
-            spaces[key] = spacelib.Space(np.uint8, shape)
+            spaces[key] = spacelib.Space(np.uint8, shape, seed=seed)
         return spaces
 
     def step(self, action):
@@ -315,7 +324,8 @@ class RenderImage(base.Wrapper):
     @functools.cached_property
     def obs_space(self):
         spaces = self.env.obs_space
-        spaces[self._key] = spacelib.Space(np.uint8, self._shape)
+        seed = getattr(self.env, '_seed', None)
+        spaces[self._key] = spacelib.Space(np.uint8, self._shape, seed=seed)
         return spaces
 
     def step(self, action):
