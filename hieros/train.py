@@ -69,6 +69,11 @@ def main(config):
                 config[key] = tuple(config[key])
 
     convert_to_tuple(config.__dict__)
+    
+    # Set random seed for reproducibility
+    tools.set_seed(config.seed)
+    print(f"Random seed set to: {config.seed}")
+    
     if "logdir" not in config or config.logdir is None:
         config.logdir = f"logs/{config.task}-{datetime.datetime.now():%Y%m%d-%H%M%S}"
 

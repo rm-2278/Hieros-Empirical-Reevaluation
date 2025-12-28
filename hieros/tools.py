@@ -25,6 +25,18 @@ from torch.optim.lr_scheduler import (
 )
 
 
+def set_seed(seed):
+    """Set random seed for reproducibility across all libraries."""
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        # Make CUDA operations deterministic
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+
 to_np = lambda x: x.detach().cpu().numpy()
 
 
