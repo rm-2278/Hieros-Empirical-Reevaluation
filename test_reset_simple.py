@@ -118,6 +118,40 @@ def check_backward_compatibility():
         return False
 
 
+def check_all_files_updated():
+    """Check if all relevant files have been updated."""
+    print("\n" + "=" * 60)
+    print("TEST 6: Check all files updated")
+    print("=" * 60)
+    
+    files_to_check = [
+        'hieros/hieros.py',
+        'hieros/dreamer.py',
+        'embodied/core/driver.py',
+        'hieros/train.py',
+    ]
+    
+    all_good = True
+    for file_path in files_to_check:
+        full_path = pathlib.Path(__file__).parent / file_path
+        if not full_path.exists():
+            print(f"✗ File not found: {file_path}")
+            all_good = False
+            continue
+        
+        content = full_path.read_text()
+        
+        # Check for the new reset logic pattern
+        if 'acts["reset"] = acts["reset"] | obs["is_last"].copy()' in content or \
+           'acts["reset"] = acts["reset"] | o["is_last"].copy()' in content:
+            print(f"✓ {file_path}: Updated with agent reset logic")
+        else:
+            print(f"✗ {file_path}: Missing agent reset logic")
+            all_good = False
+    
+    return all_good
+
+
 def main():
     """Run all tests."""
     print("\n" + "=" * 60)
@@ -156,6 +190,12 @@ def main():
         print(f"\n✗ TEST 5 FAILED: {e}")
         results.append(("Backward compatibility", False))
     
+    try:
+        results.append(("All files updated", check_all_files_updated()))
+    except Exception as e:
+        print(f"\n✗ TEST 6 FAILED: {e}")
+        results.append(("All files updated", False))
+    
     # Summary
     print("\n" + "=" * 60)
     print("TEST SUMMARY")
@@ -172,7 +212,7 @@ def main():
         print("1. Agent can now output reset action")
         print("2. Reset uses agent decision OR environment is_last")
         print("3. Backward compatible (defaults to False)")
-        print("4. Both Hieros and Dreamer agents updated")
+        print("4. Updated: Hieros, Dreamer, Driver, and Train files")
         return 0
     else:
         print("SOME TESTS FAILED ✗")
