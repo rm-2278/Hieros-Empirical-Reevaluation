@@ -55,3 +55,36 @@ The repository is structured as follows:
 - `resettable_s5/` contains our implementation of the resettable S5 model used for the S5WM. This is based on the [pytorch s5 implementation](https://github.com/i404788/s5-pytorch)
 - `experiments/` contains wandb sweep configurations for the experiments in the paper.
 - `sampler_visualization.py` contains code to visualize the sampling methods used in the paper (ETBS and the standard uniform sampling).
+
+# Debugging Subgoal Visualization
+
+If you encounter tensor dimension mismatch errors when using `subgoal_debug_visualization: True`, we provide comprehensive debugging tools:
+
+**Quick Start:**
+Enable debug mode in your config:
+```yaml
+debug: True
+subgoal_debug_visualization: True
+```
+
+This will log detailed tensor shape information to help diagnose issues.
+
+**Documentation:**
+- 📖 [Complete Debugging Guide](DEBUG_SUBGOAL_VISUALIZATION.md) - Detailed explanation of the issue and solutions
+- 📋 [Quick Reference](DEBUG_README.md) - Fast overview of debugging features
+- 📝 [Implementation Summary](IMPLEMENTATION_SUMMARY.md) - Technical details of the implementation
+- 💻 [Usage Examples](examples_debug_usage.py) - Practical code examples
+
+**Tests:**
+```bash
+# Run structure validation tests (no dependencies)
+python test_debug_structure.py
+
+# Run functional tests (requires torch)
+python test_subgoal_debug.py
+
+# Run usage examples (requires torch)
+python examples_debug_usage.py
+```
+
+For more information, see [DEBUG_README.md](DEBUG_README.md).
