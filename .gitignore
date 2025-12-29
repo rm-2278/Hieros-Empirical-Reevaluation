@@ -160,4 +160,4 @@ cython_debug/
 #.idea/
 
 logs
-wandb
+wandb/test_subgoal_reward.py
