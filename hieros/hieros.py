@@ -387,7 +387,10 @@ class Hieros(nn.Module):
                     ):
                         if subactor._compute_subgoal:
                             # Compute reward for this subactor's current state and subgoal
-                            reward = subactor._subgoal_reward(subactor_state[0], cached_subgoal.unsqueeze(0))
+                            # Add time dimension to state and subgoal for _subgoal_reward compatibility
+                            state_with_time = {k: v.unsqueeze(1) for k, v in subactor_state[0].items()}
+                            subgoal_with_time = cached_subgoal.unsqueeze(1)  # [batch, time=1, *subgoal_shape]
+                            reward = subactor._subgoal_reward(state_with_time, subgoal_with_time)
                             subgoal_rewards.append(reward.detach())
                         else:
                             # If subgoal not computed, store None or zeros
