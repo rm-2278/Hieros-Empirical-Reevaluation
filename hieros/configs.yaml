@@ -43,6 +43,7 @@ defaults:
   use_subgoal: true
   max_hierarchy: 3
   subgoal_visualization: True
+  subgoal_debug_visualization: False
   subactor_update_every: 4
   subactor_train_every: 4
   decompress_subgoal_for_input: False

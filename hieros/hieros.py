@@ -101,6 +101,10 @@ class Hieros(nn.Module):
                     *obs_space["image"].shape,
                 )
             )
+            # Action cache for debug visualization
+            self._action_cache = [[] for _ in range(config.subgoal_cache_size)]
+            # Subgoal reward cache for debug visualization
+            self._subgoal_reward_cache = [[] for _ in range(config.subgoal_cache_size)]
         self._subgoal_cache_idx = 0
         self._policy_metrics = {}
 
@@ -289,6 +293,7 @@ class Hieros(nn.Module):
         if len(state) < len(self._subactors):
             state.extend([None for _ in range(len(self._subactors) - len(state))])
         cached_subgoals = None
+        cached_actions = None
         try:
             for idx, (update, subactor) in enumerate(
                 zip(reversed(subactor_updates), reversed(self._subactors))
@@ -320,9 +325,14 @@ class Hieros(nn.Module):
                             (len(self._subactors) - 1, *subgoal.shape),
                             device=self._config.device,
                         )
+                        cached_actions = torch.zeros(
+                            (len(self._subactors) - 1, *subgoal.shape),
+                            device=self._config.device,
+                        )
                     cached_subgoals[idx] = subgoal.detach()
+                    cached_actions[idx] = subgoal.detach()
             if (
-                self._config.subgoal_visualization
+                (self._config.subgoal_visualization or self._config.subgoal_debug_visualization)
                 and mode in ["train", "explore"]
                 and self._image_in_obs
                 and cached_subgoals is not None
@@ -351,6 +361,38 @@ class Hieros(nn.Module):
                 self._img_cache[self._subgoal_cache_idx] = self._subactors[0]._obs[
                     "image"
                 ]
+                # Cache actions for debug visualization
+                if self._config.subgoal_debug_visualization:
+                    cached_actions = torch.cat(
+                        (
+                            torch.zeros(
+                                (
+                                    self._config.max_hierarchy - len(cached_actions) - 1,
+                                    self._config.envs["amount"],
+                                    *self._config.subgoal_shape,
+                                ),
+                                device=self._config.device,
+                            ),
+                            cached_actions.detach(),
+                        )
+                    )
+                    self._action_cache[self._subgoal_cache_idx] = [
+                        action.detach().unsqueeze(0) for action in cached_actions
+                    ]
+                    
+                    # Compute and cache subgoal rewards for each subactor
+                    subgoal_rewards = []
+                    for i, (subactor, subactor_state, cached_subgoal) in enumerate(
+                        zip(reversed(self._subactors[:-1]), reversed(state[:-1]), cached_subgoals)
+                    ):
+                        if subactor._compute_subgoal:
+                            # Compute reward for this subactor's current state and subgoal
+                            reward = subactor._subgoal_reward(subactor_state[0], cached_subgoal.unsqueeze(0))
+                            subgoal_rewards.append(reward.detach())
+                        else:
+                            # If subgoal not computed, store None or zeros
+                            subgoal_rewards.append(None)
+                    self._subgoal_reward_cache[self._subgoal_cache_idx] = subgoal_rewards
                 self._subgoal_cache_idx = (
                     self._subgoal_cache_idx + 1
                 ) % self._config.subgoal_cache_size
@@ -508,6 +550,16 @@ class Hieros(nn.Module):
                     and len(self._det_cache[self._subgoal_cache_idx]) > 0
                 ):
                     report["subgoal_visualization"] = self._visualize_subgoals()
+                if (
+                    self._config.subgoal_debug_visualization
+                    and len(self._action_cache[self._subgoal_cache_idx]) > 0
+                ):
+                    report["subgoal_debug_visualization"] = self._visualize_subgoals_debug()
+                    # Also add subgoal reward visualization
+                    if len(self._subgoal_reward_cache[self._subgoal_cache_idx]) > 0:
+                        reward_plot = self._visualize_subgoal_rewards()
+                        if reward_plot is not None:
+                            report["subgoal_rewards"] = reward_plot
             report["video_generation_time"] = timer.elapsed_time
         report.update(self._metrics)
         report["num_subactors"] = len(self._subactors)
@@ -579,6 +631,140 @@ class Hieros(nn.Module):
         video = np.array(frame_list)
         video = np.swapaxes(video, 0, 1)
         return self.format_video(video)
+
+    def _visualize_subgoals_debug(self):
+        print("creating debug video!")
+        # create video from subgoal cache showing fixed subgoal representation and actions
+        frame_num, num_subactors, num_envs, *subgoal_shape = self._subgoal_cache.shape
+        lowest_subactor = self._subactors[0]
+        frames = list(range(self._subgoal_cache_idx + 1, frame_num)) + list(
+            range(self._subgoal_cache_idx + 1)
+        )
+        image_shape = list(lowest_subactor._obs["image"].shape)
+
+        image_shape[1] *= len(self._subactors)
+        frame_list = np.zeros((len(frames), *image_shape))
+        for idx, frame in enumerate(frames):
+            if not self._action_cache[frame]:
+                continue
+            subgoals = []
+            subactors_list = []
+            for action_subgoal, subactor in zip(
+                self._action_cache[frame],
+                reversed(self._subactors[:-1]),
+            ):
+                # Decode the fixed subgoal (action) without adding stochastic state
+                decoded = subactor.decode_subgoal(action_subgoal.squeeze(0), isfirst=False).unsqueeze(0)
+                subgoals.append(decoded)
+                subactors_list.append(subactor)
+            
+            # Visualize only the fixed deterministic representation
+            subgoals_vis = [
+                subactor._wm.decode_state(
+                    {
+                        "stoch": torch.zeros_like(subgoal)
+                        if self._config.subgoal["use_stoch"]
+                        else torch.zeros_like(self._stoch_cache[frame][i]),
+                        "deter": subgoal
+                        if self._config.subgoal["use_deter"]
+                        else self._det_cache[frame][i],
+                    }
+                )
+                for i, (subgoal, subactor) in enumerate(zip(subgoals, subactors_list))
+            ]
+            subgoals_vis = [
+                subgoal[
+                    "image"
+                    if "image" in subgoal
+                    else ("stoch" if self._config.subgoal["use_stoch"] else "deter")
+                ]
+                for subgoal in subgoals_vis
+            ]
+            subgoals_vis = [subgoal.detach().squeeze() for subgoal in subgoals_vis]
+            subgoals_vis = [
+                (subgoal - subgoal.min()) / (subgoal.max() - subgoal.min() + 1e-8)
+                for subgoal in subgoals_vis
+            ]
+            subgoals_vis = [subgoal.cpu().numpy() for subgoal in subgoals_vis]
+            if len(subgoals_vis) > 0 and len(subgoals_vis[0].shape) < 4:
+                subgoals_vis = [subgoal[None] for subgoal in subgoals_vis]
+            subgoals_vis.append(self._img_cache[frame] / 255.0)
+            full_frame = np.concatenate(subgoals_vis, axis=1)
+            frame_list[idx] = full_frame
+        video = np.array(frame_list)
+        video = np.swapaxes(video, 0, 1)
+        return self.format_video(video)
+
+    def _visualize_subgoal_rewards(self):
+        """
+        Visualize subgoal rewards over time for each subactor as a plot.
+        Shows whether rewards increase, decrease, or remain negligible over the frame progression.
+        """
+        print("creating subgoal reward visualization!")
+        import matplotlib.pyplot as plt
+        import matplotlib
+        matplotlib.use('Agg')  # Use non-interactive backend
+        
+        frame_num = len(self._subgoal_reward_cache)
+        frames = list(range(self._subgoal_cache_idx + 1, frame_num)) + list(
+            range(self._subgoal_cache_idx + 1)
+        )
+        
+        # Collect rewards for each subactor across frames
+        num_subactors = len(self._subactors) - 1
+        if num_subactors == 0:
+            return None
+            
+        # Initialize storage for rewards per subactor per environment
+        num_envs = self._config.envs["amount"]
+        rewards_per_subactor = [[] for _ in range(num_subactors)]
+        
+        for frame in frames:
+            if not self._subgoal_reward_cache[frame]:
+                continue
+            for subactor_idx, reward in enumerate(self._subgoal_reward_cache[frame]):
+                if reward is not None:
+                    # Average across environments for cleaner visualization
+                    avg_reward = reward.mean().cpu().item()
+                    rewards_per_subactor[subactor_idx].append(avg_reward)
+        
+        # Create a plot with subgoal rewards over time
+        fig, axes = plt.subplots(num_subactors, 1, figsize=(12, 4 * num_subactors))
+        if num_subactors == 1:
+            axes = [axes]
+        
+        for subactor_idx, (ax, rewards) in enumerate(zip(axes, rewards_per_subactor)):
+            if len(rewards) > 0:
+                ax.plot(rewards, linewidth=2, color=f'C{subactor_idx}')
+                ax.axhline(y=0, color='gray', linestyle='--', alpha=0.5)
+                ax.set_xlabel('Frame', fontsize=12)
+                ax.set_ylabel('Subgoal Reward', fontsize=12)
+                ax.set_title(f'Subactor-{subactor_idx} Subgoal Reward Over Time', fontsize=14, fontweight='bold')
+                ax.grid(True, alpha=0.3)
+                
+                # Add statistics
+                mean_reward = np.mean(rewards)
+                std_reward = np.std(rewards)
+                max_reward = np.max(rewards)
+                min_reward = np.min(rewards)
+                ax.text(0.02, 0.98, 
+                       f'Mean: {mean_reward:.4f}\nStd: {std_reward:.4f}\nMax: {max_reward:.4f}\nMin: {min_reward:.4f}',
+                       transform=ax.transAxes, fontsize=10,
+                       verticalalignment='top',
+                       bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+            else:
+                ax.text(0.5, 0.5, 'No reward data available', 
+                       transform=ax.transAxes, ha='center', va='center', fontsize=14)
+        
+        plt.tight_layout()
+        
+        # Convert plot to numpy array for wandb logging
+        fig.canvas.draw()
+        plot_array = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        plot_array = plot_array.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        plt.close(fig)
+        
+        return plot_array
 
     def save(self):
         data = {
