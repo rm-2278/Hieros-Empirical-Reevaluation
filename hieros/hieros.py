@@ -532,20 +532,6 @@ class Hieros(nn.Module):
                             decoded_subgoal = subactor.decode_subgoal(cached_subgoal, isfirst=False)  # [batch, subgoal_features]
                             subgoal_with_time = decoded_subgoal.unsqueeze(1)  # [batch, subgoal_features] -> [batch, 1, subgoal_features]
                             
-                            # Ensure subgoal features match state representation features by padding if needed
-                            # get_subgoal extracts features from state, which may have more dimensions than decoded subgoal
-                            state_representation = subactor.get_subgoal(state_with_time)  # Get expected feature shape
-                            if subgoal_with_time.shape[-1] < state_representation.shape[-1]:
-                                # Pad subgoal to match state representation feature dimension
-                                padding_size = state_representation.shape[-1] - subgoal_with_time.shape[-1]
-                                padding = torch.zeros(
-                                    subgoal_with_time.shape[0],
-                                    subgoal_with_time.shape[1],
-                                    padding_size,
-                                    device=subgoal_with_time.device
-                                )
-                                subgoal_with_time = torch.cat([subgoal_with_time, padding], dim=-1)
-                            
                             # Debug logging for tensor shapes (enabled when debug=True in config)
                             if self._config.debug:
                                 debug_subgoal_visualization_shapes(
@@ -1413,17 +1399,47 @@ class SubActor(nn.Module):
         state_representation = self.get_subgoal(state)
         if self._config.subgoal_compression["encoding_symlog"]:
             state_representation = tools.symlog(state_representation)
+        
+        # Handle both batched (time > 1) and singular (time = 1) cases
+        # Reshape subgoal: [batch, time, features] -> [batch*time, features]
+        batch_size = subgoal.shape[0]
+        time_steps = subgoal.shape[1]
         reshaped_subgoal = subgoal.reshape(
-            [subgoal.shape[0] * subgoal.shape[1]] + list(subgoal.shape[2:])
-        ).expand(state_representation.shape)
-        dims_to_sum = list(range(len(state_representation.shape)))[2:]
+            [batch_size * time_steps] + list(subgoal.shape[2:])
+        )
+        
+        # Reshape state_representation to match: [batch, time, features'] -> [batch*time, features']
+        if len(state_representation.shape) == 3:
+            state_representation = state_representation.reshape(
+                [state_representation.shape[0] * state_representation.shape[1]] + list(state_representation.shape[2:])
+            )
+        
+        # Expand subgoal features to match state representation if needed
+        if reshaped_subgoal.shape[-1] < state_representation.shape[-1]:
+            # Pad with zeros to match feature dimension
+            padding_size = state_representation.shape[-1] - reshaped_subgoal.shape[-1]
+            padding = torch.zeros(
+                reshaped_subgoal.shape[0],
+                padding_size,
+                device=reshaped_subgoal.device
+            )
+            reshaped_subgoal = torch.cat([reshaped_subgoal, padding], dim=-1)
+        elif reshaped_subgoal.shape[-1] > state_representation.shape[-1]:
+            # Truncate to match
+            reshaped_subgoal = reshaped_subgoal[..., :state_representation.shape[-1]]
+        
+        # Compute cosine similarity
+        dims_to_sum = [-1]  # Sum over feature dimension
         gnorm = torch.norm(reshaped_subgoal, dim=dims_to_sum) + 1e-12
         fnorm = torch.norm(state_representation, dim=dims_to_sum) + 1e-12
         norm = torch.max(gnorm, fnorm)
         cos = torch.sum(reshaped_subgoal * state_representation, dim=dims_to_sum) / (
             norm * norm
         )
-        subgoal_reward = torch.clamp(cos.unsqueeze(-1), min=0)
+        
+        # Reshape back to [batch, time, 1]
+        subgoal_reward = cos.reshape([batch_size, time_steps, 1])
+        subgoal_reward = torch.clamp(subgoal_reward, min=0)
 
         if self._config.subgoal_reward_symlog:
             return tools.symlog(subgoal_reward)
