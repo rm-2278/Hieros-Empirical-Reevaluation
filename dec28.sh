@@ -5,4 +5,4 @@ SWEEP_OUTPUT=$(wandb sweep experiments/pinpad-easy.yml 2>&1)
 SWEEP_ID=$(echo "$SWEEP_OUTPUT" | grep -o 'wandb agent [^ ]*' | awk '{print $3}')
 # Print ID to debug
 echo "Detected Sweep ID: $SWEEP_ID"
-wandb agent $SWEEP_ID
+wandb agent $SWEEP_IDd

@@ -3,6 +3,7 @@
 ## Summary of Changes
 
 This document describes the changes made to fix reproducibility issues in Hieros training and how to test them.
+This does not make the result perfectly reproducible in all cases due to inherent non-determinism in some hardware and software operations, but significantly improves determinism across runs with the same seed.
 
 ## Issues Fixed
 

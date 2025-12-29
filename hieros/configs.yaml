@@ -333,7 +333,7 @@ pinpad-easy-director:
   batch_length: 32
   # Significantly increased from 8 to 128 for more gradient steps per env step
   # Director typically uses high train ratios (128-512) for better sample efficiency
-  train_ratio: 128
+  # train_ratio: 128
   # Increased from default 16 to 32 for better long-term planning in multi-step tasks
   imag_horizon: 32
   # Increased entropy for better exploration in discrete action spaces
