@@ -36,6 +36,8 @@ def count_steps(folder):
 
 
 def make_logger(logdir, step, config):
+    # Logger multiplier accounts for action_repeat step division
+    # (see note in main() for why action_repeat exists)
     multiplier = config.action_repeat
     outputs = [
         embodied.logger.TerminalOutput(config.filter),
@@ -80,6 +82,24 @@ def main(config):
     logdir = pathlib.Path(config.logdir).expanduser()
     config.traindir = config.traindir or logdir / "train_eps"
     config.evaldir = config.evaldir or logdir / "eval_eps"
+    
+    # NOTE: action_repeat is NOT used for global action repetition in Hieros.
+    # Instead, action repetition (frame skipping) is handled per-environment:
+    # - Atari: uses internal repeat in step() method (env.atari.repeat)
+    # - DMC/BSuite: uses ActionRepeat wrapper (env.dmc.repeat) 
+    # - DMLab: uses internal num_steps parameter (env.dmlab.repeat)
+    # 
+    # In hierarchical RL with temporal abstraction, higher-level policies naturally
+    # operate at lower frequencies than lower-level policies, making global action
+    # repeat unnecessary and potentially confusing. The action_repeat parameter
+    # exists only for compatibility with non-hierarchical baselines (e.g., Dreamer).
+    #
+    # We keep the step division for backward compatibility with existing configs,
+    # but users should set action_repeat=1 for hierarchical training to avoid confusion.
+    if config.action_repeat != 1:
+        print(f"WARNING: action_repeat={config.action_repeat} is set. For hierarchical RL, "
+              f"this divides training steps but does NOT control environment frame skipping. "
+              f"Set action_repeat=1 and use environment-specific repeat parameters instead.")
     config.steps //= config.action_repeat
     config.eval_every //= config.action_repeat
     config.log_every //= config.action_repeat

@@ -81,6 +81,10 @@ defaults:
   # Environment
   task: 'dmc_walker_walk'
   size: [64, 64]
+  # action_repeat: Step budget divisor for environments with frame skipping.
+  # This value should match the environment's internal repeat parameter.
+  # For hierarchical RL, temporal abstraction is handled by the hierarchy itself,
+  # not by action_repeat. See ACTION_REPEAT.md for detailed explanation.
   action_repeat: 2
   time_limit: 0
   grayscale: False
