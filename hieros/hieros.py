@@ -1241,7 +1241,7 @@ class SubActor(nn.Module):
         gnorm = torch.norm(reshaped_subgoal, dim=dims_to_sum) + 1e-12
         fnorm = torch.norm(state_representation, dim=dims_to_sum) + 1e-12
         norm = torch.max(gnorm, fnorm)
-        cos = torch.sum(reshaped_subgoal * state_representation, dims_to_sum) / (
+        cos = torch.sum(reshaped_subgoal * state_representation, dim=dims_to_sum) / (
             norm * norm
         )
         subgoal_reward = torch.clamp(cos.unsqueeze(-1), min=0)

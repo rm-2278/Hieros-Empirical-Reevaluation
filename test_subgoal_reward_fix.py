@@ -65,7 +65,7 @@ class MockSubactor:
         """
         state_representation = self.get_subgoal(state)
         
-        # This reshape and reshape (fixed from expand) was causing the error
+        # This reshape (fixed from expand) resolves the dimension mismatch
         reshaped_subgoal = subgoal.reshape(
             [subgoal.shape[0] * subgoal.shape[1]] + list(subgoal.shape[2:])
         ).reshape(state_representation.shape)
