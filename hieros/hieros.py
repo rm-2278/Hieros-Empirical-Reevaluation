@@ -1236,12 +1236,12 @@ class SubActor(nn.Module):
             state_representation = tools.symlog(state_representation)
         reshaped_subgoal = subgoal.reshape(
             [subgoal.shape[0] * subgoal.shape[1]] + list(subgoal.shape[2:])
-        ).expand(state_representation.shape)
+        ).reshape(state_representation.shape)
         dims_to_sum = list(range(len(state_representation.shape)))[2:]
         gnorm = torch.norm(reshaped_subgoal, dim=dims_to_sum) + 1e-12
         fnorm = torch.norm(state_representation, dim=dims_to_sum) + 1e-12
         norm = torch.max(gnorm, fnorm)
-        cos = torch.sum(reshaped_subgoal * state_representation, dim=dims_to_sum) / (
+        cos = torch.sum(reshaped_subgoal * state_representation, dims_to_sum) / (
             norm * norm
         )
         subgoal_reward = torch.clamp(cos.unsqueeze(-1), min=0)
