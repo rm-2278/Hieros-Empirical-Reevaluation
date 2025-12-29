@@ -390,7 +390,9 @@ class Hieros(nn.Module):
                             # _subgoal_reward expects [batch, time, ...] shaped tensors for compatibility
                             # with batched replay buffer data. Add time dimension (size=1) to match.
                             state_with_time = {k: v.unsqueeze(1) for k, v in subactor_state[0].items()}  # [batch, feature] -> [batch, 1, feature]
-                            subgoal_with_time = cached_subgoal.unsqueeze(1)  # [batch, *subgoal_shape] -> [batch, 1, *subgoal_shape]
+                            # Decode the compressed subgoal to full representation before computing reward
+                            decoded_subgoal = subactor.decode_subgoal(cached_subgoal, isfirst=False)  # [batch, subgoal_features]
+                            subgoal_with_time = decoded_subgoal.unsqueeze(1)  # [batch, subgoal_features] -> [batch, 1, subgoal_features]
                             reward = subactor._subgoal_reward(state_with_time, subgoal_with_time)
                             subgoal_rewards.append(reward.detach())
                         else:
@@ -1234,7 +1236,7 @@ class SubActor(nn.Module):
             state_representation = tools.symlog(state_representation)
         reshaped_subgoal = subgoal.reshape(
             [subgoal.shape[0] * subgoal.shape[1]] + list(subgoal.shape[2:])
-        ).expand(state_representation.shape)
+        ).reshape(state_representation.shape)
         dims_to_sum = list(range(len(state_representation.shape)))[2:]
         gnorm = torch.norm(reshaped_subgoal, dim=dims_to_sum) + 1e-12
         fnorm = torch.norm(state_representation, dim=dims_to_sum) + 1e-12
