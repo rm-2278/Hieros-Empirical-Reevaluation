@@ -283,7 +283,7 @@ pinpad:
   task: 'pinpad_three'
   steps: 4000000
   envs:
-    amount: 1*
+    amount: 1
   action_repeat: 1
   actor_dist: 'onehot'
   imag_gradient: 'reinforce'
@@ -322,7 +322,7 @@ pinpad-easy-director:
   steps: 400000
   envs:
     amount: 8
-  action_repeat: 2
+  action_repeat: 1
   actor_dist: 'onehot'
   imag_gradient: 'reinforce'
   eval_every: 100000
@@ -343,6 +343,7 @@ pinpad-easy-director:
   wandb_name: 'pinpad-easy-director'
   encoder: {mlp_keys: '$^', cnn_keys: 'image'}
   decoder: {mlp_keys: '$^', cnn_keys: 'image'}
+  subgoal_debug_visualization: True
 
 optuna:
   task: 'pinpad_three'

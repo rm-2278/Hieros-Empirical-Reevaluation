@@ -386,15 +386,19 @@ class Hieros(nn.Module):
                         zip(reversed(self._subactors[:-1]), reversed(state[:-1]), cached_subgoals)
                     ):
                         if subactor._compute_subgoal:
-                            # Compute reward for this subactor's current state and subgoal
-                            # _subgoal_reward expects [batch, time, ...] shaped tensors for compatibility
-                            # with batched replay buffer data. Add time dimension (size=1) to match.
-                            state_with_time = {k: v.unsqueeze(1) for k, v in subactor_state[0].items()}  # [batch, feature] -> [batch, 1, feature]
-                            # Decode the compressed subgoal to full representation before computing reward
-                            decoded_subgoal = subactor.decode_subgoal(cached_subgoal, isfirst=False)  # [batch, subgoal_features]
-                            subgoal_with_time = decoded_subgoal.unsqueeze(1)  # [batch, subgoal_features] -> [batch, 1, subgoal_features]
-                            reward = subactor._subgoal_reward(state_with_time, subgoal_with_time)
-                            subgoal_rewards.append(reward.detach())
+                            batch_size = next(iter(subactor_state[0].values())).shape[0]
+                            
+
+                            # 1. [B, F] -> [B, 1, F]
+                            state_with_time = {k: v.unsqueeze(1) for k, v in subactor_state[0].items()}
+                            subgoal_with_batch = cached_subgoal.unsqueeze(0).expand(batch_size, *cached_subgoal.shape) 
+
+                            # 2. Compute subgoal reward
+                            reward = subactor._subgoal_reward(state_with_time, subgoal_with_batch)
+                            
+                            # 3. [B, 1] -> [B]
+                            reward_tensor = reward.detach().cpu()
+                            subgoal_rewards.append(reward_tensor)
                         else:
                             # If subgoal not computed, store None or zeros
                             subgoal_rewards.append(None)
@@ -1236,7 +1240,7 @@ class SubActor(nn.Module):
             state_representation = tools.symlog(state_representation)
         reshaped_subgoal = subgoal.reshape(
             [subgoal.shape[0] * subgoal.shape[1]] + list(subgoal.shape[2:])
-        ).reshape(state_representation.shape)
+        ).expand(state_representation.shape)
         dims_to_sum = list(range(len(state_representation.shape)))[2:]
         gnorm = torch.norm(reshaped_subgoal, dim=dims_to_sum) + 1e-12
         fnorm = torch.norm(state_representation, dim=dims_to_sum) + 1e-12
