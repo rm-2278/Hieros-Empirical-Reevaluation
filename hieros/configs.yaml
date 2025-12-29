@@ -283,7 +283,7 @@ pinpad:
   steps: 4000000
   envs:
     amount: 1
-  action_repeat: 2
+  action_repeat: 1
   actor_dist: 'onehot'
   imag_gradient: 'reinforce'
   eval_every: 200000
@@ -301,7 +301,7 @@ pinpad-easy:
   steps: 400000
   envs:
     amount: 8
-  action_repeat: 2
+  action_repeat: 1
   actor_dist: 'onehot'
   imag_gradient: 'reinforce'
   eval_every: 100000
