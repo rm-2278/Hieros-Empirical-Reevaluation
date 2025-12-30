@@ -159,12 +159,13 @@ def train_eval(agent, train_env, eval_env, train_replay, eval_replay, logger, ar
                     heatmap_proxy = env0.get_position_heatmap()
                     heatmap = heatmap_proxy.result() if hasattr(heatmap_proxy, 'result') else heatmap_proxy
                     logger.add({"position_heatmap": heatmap}, prefix="exploration")
-
+                
                 if hasattr(env0, 'get_position_stats'):
                     stats_proxy = env0.get_position_stats()
                     stats = stats_proxy.result() if hasattr(stats_proxy, 'result') else stats_proxy
-                    if isinstance(stats, dict):
-                        logger.add(stats, prefix="exploration")
+                    # if isinstance(stats, dict):
+                    # print("Logging exploration stats:", stats)
+                    logger.add(stats, prefix="exploration")
             
             logger.write(fps=True)
 

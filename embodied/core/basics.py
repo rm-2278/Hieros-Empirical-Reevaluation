@@ -42,6 +42,12 @@ def convert(value):
             # Only create new list if we found Future objects
             value = [x() if _is_future(x) else x for x in value]
     
+    if isinstance(value, dict) and len(value) > 0:
+        # Check if any element is a Future object first
+        if any(_is_future(value[x]) for x in value):
+            # Only create new list if we found Future objects
+            value = {k: (v() if _is_future(v) else v) for k, v in value.items()}
+
     # if (
     #     isinstance(value, list)
     #     and all(isinstance(x, torch.Tensor) for x in value)
