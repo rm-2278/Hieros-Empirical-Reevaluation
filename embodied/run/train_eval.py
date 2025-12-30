@@ -165,7 +165,8 @@ def train_eval(agent, train_env, eval_env, train_replay, eval_replay, logger, ar
                     stats = stats_proxy.result() if hasattr(stats_proxy, 'result') else stats_proxy
                     if isinstance(stats, dict):
                         logger.add(stats, prefix="exploration")
-                        logger.write(fps=True)
+            
+            logger.write(fps=True)
 
     driver_train.on_step(train_step)
 
