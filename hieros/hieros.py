@@ -206,6 +206,7 @@ class Hieros(nn.Module):
                     # logger,
                     prefilled_replay,
                     compute_subgoal=config.max_hierarchy > 1,
+                    layer_idx=0,
                 )
             ]
         )
@@ -645,16 +646,17 @@ class Hieros(nn.Module):
                 )
         else:
             print("DECREASE SIZE DISABLED")
+        layer_idx = len(self._subactors)
         self._subactors.append(
             SubActor(
-                f"Subactor-{len(self._subactors)}",
+                f"Subactor-{layer_idx}",
                 self._subactors[-1].encoded_obs_space(),
                 {"action": embodied.Space(np.float32, self._subgoal_shape)},
                 self._subgoal_shape,
                 new_config,
                 make_replay(
                     self._config,
-                    self._config.traindir / f"replay-{len(self._subactors)}",
+                    self._config.traindir / f"replay-{layer_idx}",
                 ),
                 buffer_obs=self._config.subactor_encode_intermediate,
                 buffer_obs_keys=list(self._subactors[-1].encoded_obs_space().keys()),
@@ -662,6 +664,7 @@ class Hieros(nn.Module):
                 other_world_model=self._subactors[0]._wm
                 if not use_world_model
                 else None,
+                layer_idx=layer_idx,
             )
         )
         self._should_update_subactor.append(
@@ -980,12 +983,14 @@ class SubActor(nn.Module):
         buffer_obs_keys=None,
         use_world_model=True,
         other_world_model=None,
+        layer_idx=0,
     ):
         super(SubActor, self).__init__()
         self._config = config
         self._act_space = act_space
         self._obs_space = obs_space
         self._name = name
+        self._layer_idx = layer_idx
         self._should_log = tools.Every(config.log_every)
         batch_steps = config.batch_size * config.batch_length
         self._should_train = tools.Every(batch_steps / config.train_ratio)
@@ -1005,12 +1010,23 @@ class SubActor(nn.Module):
             raise ValueError(
                 "buffering observations is only supported when using a world model"
             )
+        
+        # Helper function to get layer-specific value from config
+        def get_layer_value(value, layer_idx):
+            """Get layer-specific value, supporting both single values and lists."""
+            if isinstance(value, (list, tuple)):
+                if len(value) == 0:
+                    raise ValueError("Config list cannot be empty for layer-specific parameters")
+                # Use layer-specific value if list, or last value if list is shorter
+                return value[min(layer_idx, len(value) - 1)]
+            return value
+        
         # Schedules
-        config.actor_entropy = lambda x=config.actor_entropy: tools.schedule(
+        config.actor_entropy = lambda x=get_layer_value(config.actor_entropy, layer_idx): tools.schedule(
             x, self._step
         )
         config.actor_state_entropy = (
-            lambda x=config.actor_state_entropy: tools.schedule(x, self._step)
+            lambda x=get_layer_value(config.actor_state_entropy, layer_idx): tools.schedule(x, self._step)
         )
         config.imag_gradient_mix = lambda x=config.imag_gradient_mix: tools.schedule(
             x, self._step

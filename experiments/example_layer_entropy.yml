@@ -1,0 +1,54 @@
+# Example: Layer-Specific Exploration Configuration
+#
+# This example demonstrates how to configure different exploration
+# parameters (actor_entropy, actor_state_entropy) for each layer in the hierarchy.
+#
+# Usage examples:
+#
+# 1. Single value (backward compatible):
+#    actor_entropy: '3e-4'
+#    actor_state_entropy: 0.0
+#    All layers will use the same values
+#
+# 2. Per-layer values:
+#    actor_entropy: ['3e-4', '1e-3', '5e-3']
+#    actor_state_entropy: [0.0, 0.1, 0.2]
+#    Layer 0 (Subactor-0): actor_entropy=3e-4, actor_state_entropy=0.0
+#    Layer 1 (Subactor-1): actor_entropy=1e-3, actor_state_entropy=0.1
+#    Layer 2 (Subactor-2): actor_entropy=5e-3, actor_state_entropy=0.2
+#
+# 3. If list is shorter than max_hierarchy:
+#    actor_entropy: ['3e-4', '1e-3']
+#    max_hierarchy: 3
+#    Layer 0: 3e-4
+#    Layer 1: 1e-3
+#    Layer 2: 1e-3 (reuses last value)
+
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - --configs
+  - pinpad-easy
+  - --max_hierarchy
+  - "3"
+  - --actor_entropy
+  # Example 1: Low exploration at base, increasing at higher levels
+  - "['3e-4', '1e-3', '3e-3']"
+  # Example 2: High exploration at base, decreasing at higher levels
+  # - "['1e-3', '5e-4', '3e-4']"
+  # Example 3: Same exploration at all levels (backward compatible)
+  # - "3e-4"
+  # Optional: Also configure actor_state_entropy per layer
+  # - --actor_state_entropy
+  # - "[0.0, 0.1, 0.2]"
+  - ${args}
+
+method: grid
+name: layer_entropy_example
+parameters:
+  seed:
+    values: [42]
+  task:
+    values: ["pinpad-easy_three"]
+program: hieros/train.py
