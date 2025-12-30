@@ -34,17 +34,17 @@ method: grid
 metric:
   goal: maximize
   name: episode/score
-name: pinpad-easy2_sweep
+name: pinpad-easy3_sweep
 parameters:
   seed:
-    values: [42, 41020, 718920]
+    values: [42]
   task:
     values: [
       "pinpad-easy_three",
       "pinpad-easy_four"
     ]
   subactor_update_every:
-    values: [32]
+    values: [8]
   actor_entropy:
     values: ["['3e-4', '1e-3', '3e-3']", "['3e-3', '1e-3', '3e-4']", "3e-4", "3e-3", "['3e-4', '1e-3', '3e-2']"]
   

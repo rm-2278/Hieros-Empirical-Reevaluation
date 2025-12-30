@@ -34,7 +34,7 @@ method: grid
 metric:
   goal: maximize
   name: episode/score
-name: pinpad-easy2_sweep
+name: pinpad-easy4_sweep
 parameters:
   seed:
     values: [42]
