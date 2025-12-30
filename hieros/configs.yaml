@@ -43,7 +43,7 @@ defaults:
   use_subgoal: true
   max_hierarchy: 3
   subgoal_visualization: True
-  subgoal_debug_visualization: False
+  subgoal_debug_visualization: True
   subactor_update_every: 4
   subactor_train_every: 4
   decompress_subgoal_for_input: False
@@ -343,8 +343,26 @@ pinpad-easy-director:
   wandb_name: 'pinpad-easy-director'
   encoder: {mlp_keys: '$^', cnn_keys: 'image'}
   decoder: {mlp_keys: '$^', cnn_keys: 'image'}
-  subgoal_debug_visualization: True
   # debug: True
+
+pinpad-easy-entropy:
+  steps: 1200000
+  envs:
+    amount: 8
+  action_repeat: 1
+  actor_dist: 'onehot'
+  imag_gradient: 'reinforce'
+  eval_every: 200000
+  eval_eps: 10
+  log_every: 5000
+  batch_size: 16
+  batch_length: 32
+  train_ratio: 16
+  imag_horizon: 32
+  # actor_entropy: '1e-3'
+  wandb_name: 'pinpad-easy-entropy'
+  encoder: {mlp_keys: '$^', cnn_keys: 'image'}
+  decoder: {mlp_keys: '$^', cnn_keys: 'image'}
 
 optuna:
   task: 'pinpad_three'

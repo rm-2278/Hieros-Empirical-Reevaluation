@@ -3,7 +3,7 @@ command:
   - ${interpreter}
   - ${program}
   - --configs
-  - pinpad-easy-director
+  - pinpad-easy-entropy
   - s5_no_mlp
   - s5_silu_act
   - rm_model_size
@@ -34,17 +34,18 @@ method: grid
 metric:
   goal: maximize
   name: episode/score
-name: pinpad-easy_sweep
+name: pinpad-easy2_sweep
 parameters:
   seed:
     values: [42, 41020, 718920]
   task:
     values: [
-      "pinpad-easy_three"
+      "pinpad-easy_three",
+      "pinpad-easy_four"
     ]
   subactor_update_every:
     values: [32]
-  train_ratio:
-    values: [8, 16, 32, 64, 128]
+  actor_entropy:
+    values: ["['3e-4', '1e-3', '3e-3']", "['3e-3', '1e-3', '3e-4']", "3e-4", "3e-3", "['3e-4', '1e-3', '3e-2']"]
   
 program: hieros/train.py
