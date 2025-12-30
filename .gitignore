@@ -161,3 +161,4 @@ cython_debug/
 
 logs
 wandbtest_position_heatmap.py
+demo_heatmap_visualization.py
