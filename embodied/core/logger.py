@@ -13,6 +13,7 @@ from subprocess import Popen, PIPE
 import torch
 
 from . import path
+from . import basics
 
 
 class Logger:
@@ -29,9 +30,7 @@ class Logger:
         step = int(self.step) * self.multiplier
         for name, value in dict(mapping).items():
             name = f"{prefix}/{name}" if prefix else name
-            if torch.is_tensor(value):
-                value = value.detach().cpu().numpy()
-            value = np.asarray(value)
+            value = basics.convert(value)
             if len(value.shape) not in (0, 1, 2, 3, 4):
                 raise ValueError(
                     f"Shape {value.shape} for name '{name}' cannot be "
