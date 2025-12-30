@@ -37,17 +37,10 @@ def convert(value):
     
     # Handle lists that may contain Future objects
     if isinstance(value, list) and len(value) > 0:
-        # Check and resolve Future objects in one pass to avoid redundant checks
-        has_futures = False
-        resolved = []
-        for x in value:
-            if _is_future(x):
-                has_futures = True
-                resolved.append(x())
-            else:
-                resolved.append(x)
-        if has_futures:
-            value = resolved
+        # Check if any element is a Future object first
+        if any(_is_future(x) for x in value):
+            # Only create new list if we found Future objects
+            value = [x() if _is_future(x) else x for x in value]
     
     # if (
     #     isinstance(value, list)
