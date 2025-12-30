@@ -1,3 +1,4 @@
+import ast
 import datetime
 import collections
 import io
@@ -768,17 +769,16 @@ def args_type(default):
         # This must be checked before other type checks
         x_stripped = x.strip()
         if x_stripped.startswith('[') and x_stripped.endswith(']'):
-            import ast
             try:
                 parsed = ast.literal_eval(x_stripped)
                 if isinstance(parsed, list):
                     # Determine the element type from default
                     if isinstance(default, (list, tuple)) and len(default) > 0:
-                        elem_type = type(default[0])
+                        elem_default = default[0]
                     else:
-                        elem_type = type(default)
+                        elem_default = default
                     # Convert each element using the inferred element type
-                    return tuple(args_type(elem_type())(str(y)) for y in parsed)
+                    return tuple(args_type(elem_default)(str(y)) for y in parsed)
             except (ValueError, SyntaxError):
                 # If parsing fails, continue with normal processing
                 pass
