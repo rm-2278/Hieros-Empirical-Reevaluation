@@ -160,5 +160,7 @@ cython_debug/
 #.idea/
 
 logs
-wandbtest_position_heatmap.py
+wandb
+test_position_heatmap.py
 demo_heatmap_visualization.py
+ascii_heatmap_demo.py
