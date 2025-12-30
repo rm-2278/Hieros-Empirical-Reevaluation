@@ -130,6 +130,21 @@ def train_eval(agent, train_env, eval_env, train_replay, eval_replay, logger, ar
             if eval_replay is not None:
                 logger.add(eval_replay.stats, prefix="eval_replay")
             logger.add(timer.stats(), prefix="timer")
+            
+            # Log position visit heatmap for pinpad environments
+            if hasattr(train_env, '_envs') and len(train_env._envs) > 0:
+                env0 = train_env._envs[0]
+                # Unwrap if it's a parallel environment wrapper
+                while hasattr(env0, '_env') and not hasattr(env0, 'get_position_heatmap'):
+                    env0 = env0._env
+                if hasattr(env0, 'get_position_heatmap'):
+                    heatmap = env0.get_position_heatmap()
+                    logger.add({"position_heatmap": heatmap}, prefix="exploration")
+                    # Also log position statistics
+                    if hasattr(env0, 'get_position_stats'):
+                        stats = env0.get_position_stats()
+                        logger.add(stats, prefix="exploration")
+            
             logger.write(fps=True)
 
     driver_train.on_step(train_step)
