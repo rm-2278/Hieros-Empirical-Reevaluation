@@ -162,9 +162,20 @@ def train_eval(agent, train_env, eval_env, train_replay, eval_replay, logger, ar
                 
                 if hasattr(env0, 'get_position_stats'):
                     stats_proxy = env0.get_position_stats()
-                    stats = stats_proxy.result() if hasattr(stats_proxy, 'result') else stats_proxy
+                    print(stats_proxy)
                     # if isinstance(stats, dict):
                     # print("Logging exploration stats:", stats)
+                    # logger.add(stats, prefix="exploration")
+                    
+                    if hasattr(stats_proxy, 'result'):
+                         stats = stats_proxy.result()
+                    elif hasattr(stats_proxy, '_receive') and hasattr(stats_proxy, '__call__'):
+                         stats = stats_proxy()
+                    else:
+                         stats = stats_proxy
+                    print(stats)
+
+                    # Now 'stats' is guaranteed to be a dict (not a Future), so logger.add won't crash
                     logger.add(stats, prefix="exploration")
             
             logger.write(fps=True)
