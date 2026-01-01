@@ -198,12 +198,12 @@ class EpisodicCountModule(nn.Module):
         self._k_neighbors = k_neighbors
         self._kernel_epsilon = kernel_epsilon
         
-        # Memory limits to prevent memory exhaustion
+        # Memory limits to prevent memory exhaustion - reduced defaults
         im_config = getattr(config, 'intrinsic_motivation', {})
         if not isinstance(im_config, dict):
             im_config = {}
-        self._max_memory_per_env = im_config.get("max_memory_per_env", 10000)
-        self._max_hash_entries_per_env = im_config.get("max_hash_entries_per_env", 50000)
+        self._max_memory_per_env = im_config.get("max_memory_per_env", 5000)
+        self._max_hash_entries_per_env = im_config.get("max_hash_entries_per_env", 10000)
         
         # Random projection for locality-sensitive hashing
         self.register_buffer(
@@ -362,10 +362,11 @@ class HierarchicalExplorationBonus(nn.Module):
             hierarchical_config = {}
         
         # History of subgoal embeddings for diversity computation
+        # Reduced default to prevent OOM - stores on CPU
         self._subgoal_history = []
         self._max_history = (
-            im_config.get("max_history", 1000) 
-            or hierarchical_config.get("max_history", 1000)
+            im_config.get("max_history", 500) 
+            or hierarchical_config.get("max_history", 500)
         )
         
         # Running statistics
@@ -397,7 +398,8 @@ class HierarchicalExplorationBonus(nn.Module):
         
         # Compute diversity bonus based on distance to previous subgoals
         if len(self._subgoal_history) > 0:
-            history_tensor = torch.stack(self._subgoal_history[-self._max_history:])
+            # Move history to same device as embedding for computation
+            history_tensor = torch.stack(self._subgoal_history[-self._max_history:]).to(embedding.device)
             
             # Compute pairwise distances
             distances = torch.cdist(embedding.unsqueeze(0), history_tensor.unsqueeze(0))[0]
@@ -405,13 +407,16 @@ class HierarchicalExplorationBonus(nn.Module):
             # Bonus is based on minimum distance to any previous subgoal
             min_distances, _ = distances.min(dim=-1)
             diversity_bonus = min_distances.unsqueeze(-1)
+            
+            # Clean up
+            del history_tensor
         else:
             # First subgoals get maximum bonus
             diversity_bonus = torch.ones(batch, 1, device=subgoals.device)
         
-        # Add current subgoals to history
+        # Add current subgoals to history (store on CPU to save GPU memory)
         for i in range(batch):
-            self._subgoal_history.append(embedding[i].detach())
+            self._subgoal_history.append(embedding[i].detach().cpu())
             if len(self._subgoal_history) > self._max_history:
                 self._subgoal_history.pop(0)
         
@@ -459,9 +464,9 @@ class IntrinsicMotivationManager(nn.Module):
         if self.use_rnd:
             self.rnd_module = RNDModule(
                 input_dim=feat_size,
-                hidden_dim=im_config.get("rnd_hidden_dim", 256),
-                output_dim=im_config.get("rnd_output_dim", 128),
-                num_layers=im_config.get("rnd_num_layers", 3),
+                hidden_dim=im_config.get("rnd_hidden_dim", 128),  # Reduced default
+                output_dim=im_config.get("rnd_output_dim", 64),   # Reduced default
+                num_layers=im_config.get("rnd_num_layers", 2),    # Reduced default
                 config=config,
             )
         
@@ -485,7 +490,7 @@ class IntrinsicMotivationManager(nn.Module):
             
             self.hierarchical_module = HierarchicalExplorationBonus(
                 subgoal_dim=sg_dim,
-                hidden_dim=im_config.get("hierarchical_hidden_dim", 128),
+                hidden_dim=im_config.get("hierarchical_hidden_dim", 64),  # Reduced default
                 config=config,
             )
         
@@ -562,6 +567,11 @@ class IntrinsicMotivationManager(nn.Module):
         if self.use_rnd:
             rnd_metrics = self.rnd_module.train_step(features)
             metrics.update({f"intrinsic/{k}": v for k, v in rnd_metrics.items()})
+        
+        # Periodically clean up GPU memory
+        if self._step % 1000 == 0:
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
         
         return metrics
     

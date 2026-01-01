@@ -49,21 +49,23 @@ defaults:
     use_episodic_count: true   # Episodic count-based exploration
     use_hierarchical_bonus: true  # Hierarchical exploration bonus for diverse subgoals
     
-    # RND settings
+    # RND settings (reduced defaults to prevent OOM)
     rnd_weight: 0.5            # Weight for RND intrinsic reward
-    rnd_hidden_dim: 256        # Hidden layer size for RND networks
-    rnd_output_dim: 128        # Output embedding dimension
-    rnd_num_layers: 3          # Number of layers in predictor network
+    rnd_hidden_dim: 128        # Hidden layer size for RND networks (reduced from 256)
+    rnd_output_dim: 64         # Output embedding dimension (reduced from 128)
+    rnd_num_layers: 2          # Number of layers in predictor network (reduced from 3)
     
     # Count-based exploration settings
     count_weight: 0.3          # Weight for count-based intrinsic reward
     count_num_bins: 32         # Number of bins for LSH-based counting
     count_k_neighbors: 10      # K neighbors for kernel-based counting
+    max_memory_per_env: 5000   # Max episodic memory entries per environment
+    max_hash_entries_per_env: 10000  # Max hash entries per environment
     
     # Hierarchical exploration bonus settings
     hierarchical_weight: 0.2   # Weight for hierarchical diversity bonus
-    hierarchical_hidden_dim: 128
-    max_history: 1000          # Max subgoal history for diversity computation
+    hierarchical_hidden_dim: 64  # Reduced from 128
+    max_history: 500           # Max subgoal history for diversity computation (reduced from 1000)
     
     # Exploration schedule
     exploration_schedule: "constant"  # Options: constant, linear_decay, exponential_decay
@@ -78,7 +80,7 @@ defaults:
   
   # Hierarchical exploration settings
   hierarchical_exploration:
-    max_history: 1000
+    max_history: 500
   
   add_hierarchy_every: 1
   use_subgoal: true
