@@ -28,6 +28,12 @@ class PinPadEasy(embodied.Env):
         "progress_any": "Reward any tile that contributes to sequence progress",
     }
 
+    # Dense guidance reward constants (can be tuned)
+    DENSE_MOVE_TOWARD_REWARD = 0.1
+    DENSE_MOVE_AWAY_PENALTY = 0.05
+    DENSE_WRONG_TILE_PENALTY = 0.1
+    DENSE_CORRECT_TILE_BONUS = 1.0
+
     def __init__(self, task, length=1000, seed=None, reward_mode="flat"):
         assert length > 0
         assert reward_mode in self.REWARD_MODES, f"Invalid reward_mode: {reward_mode}. Valid modes: {list(self.REWARD_MODES.keys())}"
@@ -138,9 +144,11 @@ class PinPadEasy(embodied.Env):
                     # Give reward for any tile that's part of the target sequence
                     # and hasn't been rewarded yet in this episode
                     if tile in self.target and tile not in self.visited_correct_tiles:
+                        # Calculate reward based on count before adding tile
+                        tiles_before = len(self.visited_correct_tiles)
                         self.visited_correct_tiles.add(tile)
-                        # Give reward based on how many tiles collected so far
-                        reward += 1.0 + 0.5 * len(self.visited_correct_tiles)
+                        # Give reward based on how many tiles collected so far (1.0, 1.5, 2.0, ...)
+                        reward += 1.0 + 0.5 * tiles_before
                 elif self.reward_mode != "dense_guidance":
                     # Standard intermediate reward for correct sequence
                     if len(self.sequence) < len(self.target) and tile == self.target[len(self.sequence) - 1]:
@@ -181,17 +189,17 @@ class PinPadEasy(embodied.Env):
         
         # Small reward for moving closer to target
         if new_dist < old_dist:
-            reward += 0.1
+            reward += self.DENSE_MOVE_TOWARD_REWARD
         elif new_dist > old_dist:
-            reward -= 0.05  # Small penalty for moving away
+            reward -= self.DENSE_MOVE_AWAY_PENALTY
         
         # Penalty for stepping on wrong tile
         if tile in self.pads and tile != next_target:
-            reward -= 0.1
+            reward -= self.DENSE_WRONG_TILE_PENALTY
         
         # Bonus for reaching the correct target tile
         if tile == next_target:
-            reward += 1.0
+            reward += self.DENSE_CORRECT_TILE_BONUS
         
         return reward
 
