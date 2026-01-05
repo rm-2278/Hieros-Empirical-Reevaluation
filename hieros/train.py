@@ -389,6 +389,9 @@ if __name__ == "__main__":
     args, unknown = parser.parse_known_args(remaining)
     
     # Helper function to infer value type from string
+    # Note: We don't use tools.args_type() here because that requires a default value
+    # to determine the target type. For unknown dot notation arguments from wandb,
+    # we don't have defaults, so we infer the type from the string itself.
     def infer_value_type(value_str):
         """Convert string to appropriate type (int, float, bool, or str)"""
         # Try int first
@@ -403,7 +406,7 @@ if __name__ == "__main__":
         except ValueError:
             pass
         
-        # Try boolean
+        # Try boolean (common wandb parameter values)
         if value_str.lower() in ('true', 'false', 'yes', 'no'):
             return value_str.lower() in ('true', 'yes')
         
