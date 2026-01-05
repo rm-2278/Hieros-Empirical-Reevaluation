@@ -9,7 +9,7 @@ command:
   - rm_model_size
   - additional_inputs
   - --max_hierarchy
-  - "3"
+  - "2"
   - --subgoal_visualization
   - "True"
   - --wandb_logging
