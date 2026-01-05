@@ -388,6 +388,28 @@ if __name__ == "__main__":
     # Parse known args first, then handle unknown args with dot notation
     args, unknown = parser.parse_known_args(remaining)
     
+    # Helper function to infer value type from string
+    def infer_value_type(value_str):
+        """Convert string to appropriate type (int, float, bool, or str)"""
+        # Try int first
+        try:
+            return int(value_str)
+        except ValueError:
+            pass
+        
+        # Try float
+        try:
+            return float(value_str)
+        except ValueError:
+            pass
+        
+        # Try boolean
+        if value_str.lower() in ('true', 'false', 'yes', 'no', '1', '0'):
+            return value_str.lower() in ('true', 'yes', '1')
+        
+        # Return as string
+        return value_str
+    
     # Process unknown arguments that may contain dot notation (e.g., from wandb sweeps)
     # These are arguments like --env.pinpad-easy.reward_mode=decaying
     i = 0
@@ -411,6 +433,9 @@ if __name__ == "__main__":
             # Convert hyphens to underscores (argparse standard)
             key_part = key_part.replace('-', '_')
             
+            # Infer the type of the value
+            typed_value = infer_value_type(value)
+            
             # Handle dot notation: split and update nested structure
             if '.' in key_part:
                 parts = key_part.split('.')
@@ -427,20 +452,7 @@ if __name__ == "__main__":
                             current = current[part]
                         
                         # Set the final value
-                        final_key = parts[-1]
-                        try:
-                            # Try to parse as number
-                            if '.' in value:
-                                value = float(value)
-                            else:
-                                value = int(value)
-                        except ValueError:
-                            # Try to parse as boolean
-                            if value.lower() in ('true', 'false'):
-                                value = value.lower() == 'true'
-                            # Otherwise keep as string
-                        
-                        current[final_key] = value
+                        current[parts[-1]] = typed_value
                     else:
                         # Not a dict, treat as Namespace
                         current = first_obj
@@ -449,17 +461,7 @@ if __name__ == "__main__":
                                 setattr(current, part, argparse.Namespace())
                             current = getattr(current, part)
                         
-                        final_key = parts[-1]
-                        try:
-                            if '.' in value:
-                                value = float(value)
-                            else:
-                                value = int(value)
-                        except ValueError:
-                            if value.lower() in ('true', 'false'):
-                                value = value.lower() == 'true'
-                        
-                        setattr(current, final_key, value)
+                        setattr(current, parts[-1], typed_value)
                 else:
                     # First part doesn't exist, create Namespace structure
                     current = args
@@ -468,28 +470,10 @@ if __name__ == "__main__":
                             setattr(current, part, argparse.Namespace())
                         current = getattr(current, part)
                     
-                    final_key = parts[-1]
-                    try:
-                        if '.' in value:
-                            value = float(value)
-                        else:
-                            value = int(value)
-                    except ValueError:
-                        if value.lower() in ('true', 'false'):
-                            value = value.lower() == 'true'
-                    
-                    setattr(current, final_key, value)
+                    setattr(current, parts[-1], typed_value)
             else:
                 # Simple key without dots
-                try:
-                    if '.' in value:
-                        value = float(value)
-                    else:
-                        value = int(value)
-                except ValueError:
-                    if value.lower() in ('true', 'false'):
-                        value = value.lower() == 'true'
-                setattr(args, key_part, value)
+                setattr(args, key_part, typed_value)
         else:
             i += 1
 
