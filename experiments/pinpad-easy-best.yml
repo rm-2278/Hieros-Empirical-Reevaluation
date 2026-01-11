@@ -1,0 +1,51 @@
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - --configs
+  - pinpad-easy-director
+  - s5_no_mlp
+  - s5_silu_act
+  - rm_model_size
+  - additional_inputs
+  - --max_hierarchy
+  - "2"
+  - --subgoal_visualization
+  - "True"
+  - --wandb_logging
+  - "True"
+  - --dynamics_model
+  - s5
+  - --novelty_reward_weight
+  - 0.3
+  - --use_subgoal
+  - True
+  - --decompress_subgoal_for_input
+  - False
+  - --subgoal_reward_weight
+  - 0.3
+  - --replay_temperature
+  - 0.3
+  - ${args}
+
+method: grid
+metric:
+  goal: maximize
+  name: episode/score
+name: pinpad-easy-dense-reward
+parameters:
+  seed:
+    values: [42]
+  task:
+    values: [
+      "pinpad-easy_three",
+      "pinpad-easy_four"
+    ]
+  env.pinpad-easy.reward_mode:
+    values: ["dense_guidance"]
+  subactor_update_every:
+    values: [8]
+  train_ratio:
+    values: [32, 64]
+  
+program: hieros/train.py

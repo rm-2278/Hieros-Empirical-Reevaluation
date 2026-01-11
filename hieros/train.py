@@ -268,7 +268,7 @@ def make_env(config, env_index=0, **overrides):
         "loconav": "embodied.envs.loconav:LocoNav",
         "pinpad": "embodied.envs.pinpad:PinPad",
         "pinpad-easy": "embodied.envs.pinpad-easy:PinPadEasy",
-        "bsuite": "embodied.envs.bsuite:BSuite",
+        "bsuite": "embodied.envs.bsuite:BSuite"
     }[suite]
     if isinstance(ctor, str):
         module, cls = ctor.split(":")
@@ -457,9 +457,6 @@ if __name__ == "__main__":
             if not dotted_key:
                 continue
             
-            # Convert hyphens to underscores (argparse standard)
-            dotted_key = dotted_key.replace('-', '_')
-            
             # Infer the type of the value
             typed_value = infer_value_type(value)
             
@@ -467,20 +464,60 @@ if __name__ == "__main__":
             if '.' in dotted_key:
                 parts = dotted_key.split('.')
                 
-                # For the first part, check if it exists and is a dict
-                if hasattr(args, parts[0]):
-                    first_obj = getattr(args, parts[0])
-                    if isinstance(first_obj, dict):
-                        # Navigate through dict structure
-                        set_nested_dict(first_obj, parts[1:], typed_value)
+                # The first part corresponds to an argparse argument, so it will have underscores
+                root_part = parts[0].replace('-', '_')
+                
+                # Check if the root object exists
+                if hasattr(args, root_part):
+                    current_obj = getattr(args, root_part)
+                    
+                    # Navigate through the rest of the parts
+                    # We need to handle the path, checking for existing keys with hyphens
+                    remaining_parts = parts[1:]
+                    
+                    # If the root is a dict, we process it differently than a Namespace
+                    if isinstance(current_obj, dict):
+                        target_dict = current_obj
+                        for idx, part in enumerate(remaining_parts[:-1]):
+                            # Check if part exists as is (with hyphens)
+                            if part in target_dict:
+                                target_dict = target_dict[part]
+                            # Check if part exists with underscores
+                            elif part.replace('-', '_') in target_dict:
+                                target_dict = target_dict[part.replace('-', '_')]
+                            else:
+                                # Create new dict if not found
+                                # Default to underscore for new keys to match previous behavior
+                                new_key = part.replace('-', '_')
+                                target_dict[new_key] = {}
+                                target_dict = target_dict[new_key]
+                        
+                        # Set the final value
+                        last_part = remaining_parts[-1]
+                        # Check existance for last part too
+                        if last_part in target_dict:
+                            target_dict[last_part] = typed_value
+                        elif last_part.replace('-', '_') in target_dict:
+                            target_dict[last_part.replace('-', '_')] = typed_value
+                        else:
+                            # Default to underscore
+                            target_dict[last_part.replace('-', '_')] = typed_value
+                            
                     else:
-                        # Not a dict, treat as Namespace
-                        set_nested_namespace(first_obj, parts[1:], typed_value)
+                        # Namespace traversal uses getattr/setattr and likely expects underscores
+                        # But let's be safe and check if we are stepping into a dict at some point
+                        # This part of the code was previously: set_nested_namespace(first_obj, parts[1:], typed_value)
+                        # We'll use the original logic for Namespaces but apply underscore replacement to be safe
+                        # as Namespaces usually don't support hyphens in attributes well
+                        clean_parts = [p.replace('-', '_') for p in remaining_parts]
+                        set_nested_namespace(current_obj, clean_parts, typed_value)
                 else:
-                    # First part doesn't exist, create Namespace structure
-                    set_nested_namespace(args, parts, typed_value)
+                    # First part doesn't exist, create Namespace structure with underscores
+                    clean_parts = [p.replace('-', '_') for p in parts]
+                    set_nested_namespace(args, clean_parts, typed_value)
             else:
                 # Simple key without dots
+                dotted_key = dotted_key.replace('-', '_')
                 setattr(args, dotted_key, typed_value)
         else:
             i += 1
