@@ -1,5 +1,12 @@
-# Hieros
-Implemenation of the HIERarchical imagionation On Structured State Space Sequence Models (HIEROS) paper in pytorch. This repository is based on the [DreamerV3](https://github.com/danijar/dreamerv3), [DreamerV3 in pytorch](https://github.com/NM512/dreamerv3-torch) and [S5 in pytorch](https://github.com/i404788/s5-pytorch) repositories.
+# HIDA
+Implementation of HIDA: Hierarchical Imagination with Dynamic Adaptation.
+
+We propose:
+- A hierarchical model with dynamic temporal abstraction.
+- A model that automatically balances exploration parameters among hierarchy.
+- Addressing the non-stationary problem of higher layers using prioritised experience replay or hindsight relabeling inspired by [Gu et al. 18].
+
+It is based on the implemenation of the HIERarchical imagionation On Structured State Space Sequence Models (HIEROS) paper in pytorch. Hieros repository is based on the [DreamerV3](https://github.com/danijar/dreamerv3), [DreamerV3 in pytorch](https://github.com/NM512/dreamerv3-torch) and [S5 in pytorch](https://github.com/i404788/s5-pytorch) repositories.
 
 # Installation
 
