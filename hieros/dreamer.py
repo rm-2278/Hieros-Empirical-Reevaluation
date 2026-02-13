@@ -88,8 +88,15 @@ class Dreamer(nn.Module):
         acts = {k: embodied.convert(v) for k, v in policy_output.items()}
         if obs["is_last"].any():
             mask = 1 - obs["is_last"]
-            acts = {k: v * expand(mask, len(v.shape)) for k, v in acts.items()}
-        acts["reset"] = obs["is_last"].copy()
+            acts = {k: v * expand(mask, len(v.shape)) for k, v in acts.items() if k != "reset"}
+        
+        # Use agent's reset decision OR environment's is_last signal
+        # This allows agent to reset early if desired, while still respecting episode termination
+        if "reset" in acts:
+            acts["reset"] = acts["reset"] | obs["is_last"].copy()
+        else:
+            # Fallback for backward compatibility
+            acts["reset"] = obs["is_last"].copy()
 
         # if training and self._manual_add and policy_output is not None and not self._config.fix_dataset:
         if training and policy_output is not None and not self._config.fix_dataset:
@@ -166,7 +173,14 @@ class Dreamer(nn.Module):
                 torch.argmax(action, dim=-1), self._config.num_actions
             )
         action = self._exploration(action, training)
-        policy_output = {"action": action, "log_entropy": logprob}
+        
+        # Add reset action output - enables agent to control environment reset
+        # Currently defaults to False to maintain backward compatibility
+        # TODO: For full agent control, add a learnable reset head to the actor network
+        # that can learn when to reset based on the feature representation
+        reset = torch.zeros(action.shape[0], dtype=torch.bool, device=self._config.device)
+        
+        policy_output = {"action": action, "log_entropy": logprob, "reset": reset}
         state = (latent, action)
         return policy_output, state
 

@@ -149,9 +149,14 @@ def main(config):
             if o["is_last"].any():
                 mask = 1 - o["is_last"]
                 acts = {
-                    k: v * expand(mask, len(v.shape)) for k, v in random_action.items()
+                    k: v * expand(mask, len(v.shape)) for k, v in acts.items() if k != "reset"
                 }
-            acts["reset"] = o["is_last"].copy()
+            
+            # Use agent's reset decision OR environment's is_last signal
+            if "reset" in acts:
+                acts["reset"] = acts["reset"] | o["is_last"].copy()
+            else:
+                acts["reset"] = o["is_last"].copy()
 
             tools.add_step_to_replay(
                 train_replay,
