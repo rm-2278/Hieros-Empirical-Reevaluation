@@ -5,6 +5,12 @@ Implementation of HIDA: Hierarchical Imagination with Dynamic Adaptation.
 
 This repository contains the experiments and data used in our paper. You can find the paper in the [docs folder](docs/paper.pdf).
 
+The paper presents HIDA, a novel approach to hierarchical reinforcement learning that combines world models with hierarchical imagination. Our work addresses key challenges in hierarchical RL:
+
+- **Dynamic Temporal Abstraction**: Learning when to abstract across different time scales
+- **Exploration Balancing**: Automatically adjusting exploration parameters across the hierarchy
+- **Non-stationarity**: Handling the non-stationary nature of higher-level policies
+
 ## Members
 
 shiropa-uk, t-yamada02, ziwoo3244
@@ -16,7 +22,36 @@ We propose:
 - A model that automatically balances exploration parameters among hierarchy.
 - Addressing the non-stationary problem of higher layers using prioritised experience replay or hindsight relabeling inspired by [Gu et al. 18].
 
-It is based on the implemenation of the HIERarchical imagionation On Structured State Space Sequence Models (HIEROS) paper in pytorch. Hieros repository is based on the [DreamerV3](https://github.com/danijar/dreamerv3), [DreamerV3 in pytorch](https://github.com/NM512/dreamerv3-torch) and [S5 in pytorch](https://github.com/i404788/s5-pytorch) repositories.
+It is based on the implementation of the HIERarchical imagination On Structured State Space Sequence Models (HIEROS) paper in pytorch. Hieros repository is based on the [DreamerV3](https://github.com/danijar/dreamerv3), [DreamerV3 in pytorch](https://github.com/NM512/dreamerv3-torch) and [S5 in pytorch](https://github.com/i404788/s5-pytorch) repositories.
+
+## Benchmarks
+
+We evaluate HIDA on multiple reinforcement learning benchmarks:
+
+- **Atari 100k**: A sample-efficient benchmark using 26 Atari games with only 100k environment interactions
+- **DeepMind Control Suite (DMC)**: Continuous control tasks for evaluating motor control capabilities
+- **MiniGrid**: Procedurally generated grid-world environments for testing generalization
+- **PinPad**: A sparse-reward environment designed to test hierarchical exploration
+
+## Experiments
+
+The `experiments/` directory contains all experiment configurations and scripts used in the paper:
+
+- **Ablation Studies**: Configurations for testing individual components (e.g., `atari100k_experiment_no_stoch.yml`, `atari100k_experiment_no_intermediate.yml`)
+- **Hyperparameter Sweeps**: Sweeping configurations for finding optimal parameters (e.g., `atari100k_sweep.yml`)
+- **Hierarchical World Model Experiments**: Testing different hierarchy configurations (e.g., `atari100k_experiment_num_layers.yml`)
+- **Exploration Studies**: Evaluating different exploration strategies (e.g., `pinpad-easy-sparse-sweep.yml`, entropy control experiments)
+
+## Reproducibility
+
+To reproduce our results:
+
+1. Install dependencies following the [Installation](#installation) section
+2. Use the experiment configurations in `experiments/configs/` 
+3. Run experiments using the scripts in `experiments/scripts/`
+4. Visualize results using the notebooks in `notebooks/`
+
+All training metrics are logged to TensorBoard for easy comparison and visualization.
 
 # Installation
 
