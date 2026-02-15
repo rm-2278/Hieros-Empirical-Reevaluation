@@ -1,6 +1,10 @@
 # HIDA
 Implementation of HIDA: Hierarchical Imagination with Dynamic Adaptation.
 
+## Paper
+
+This repository contains the experiments and data used in our paper. You can find the paper in the [docs folder](docs/paper.pdf).
+
 ## Members
 
 shiropa-uk, t-yamada02, ziwoo3244
