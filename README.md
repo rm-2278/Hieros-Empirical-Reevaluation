@@ -8,8 +8,7 @@
 
 ---
 
-<details open>
-<summary><h2>🇯🇵 日本語版 (Japanese Version)</h2></summary>
+<h2>🇯🇵 日本語版 (Japanese Version)</h2>
 
 # 階層的世界モデルHierosの実証的再評価
 
