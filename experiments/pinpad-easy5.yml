@@ -1,0 +1,54 @@
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - --configs
+  - pinpad-easy-director
+  - s5_no_mlp
+  - s5_silu_act
+  - rm_model_size
+  - additional_inputs
+  - --max_hierarchy
+  - "3"
+  - --subgoal_visualization
+  - "True"
+  - --wandb_logging
+  - "True"
+  - --dynamics_model
+  - s5
+  - --novelty_reward_weight
+  - 0.1
+  - --use_subgoal
+  - True
+  - --decompress_subgoal_for_input
+  - False
+  - --subgoal_reward_weight
+  - 0.3
+  - --novelty_only_higher_level
+  - True
+  - --replay_temperature
+  - 0.3
+  - ${args}
+
+method: grid
+metric:
+  goal: maximize
+  name: episode/score
+name: pinpad-easy-varyingrewardrate_sweep
+parameters:
+  seed:
+    values: [42]
+  task:
+    values: [
+      "pinpad-easy_three"
+    ]
+  subactor_update_every:
+    values: [8]
+  train_ratio:
+    values: [8]
+  subgoal_reward_weight:
+    values: [0.1, 0.3, 0.5, 1.0]
+  novelty_reward_weight:
+    values: [0.1, 0.3, 0.5, 1.0]
+  
+program: hieros/train.py

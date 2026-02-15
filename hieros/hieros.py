@@ -19,6 +19,7 @@ sys.path.append(str(pathlib.Path(__file__).parent.parent))
 import exploration as expl
 import models
 import tools
+import intrinsic_motivation as im
 
 import importlib
 
@@ -1043,6 +1044,13 @@ class SubActor(nn.Module):
             self._wm = other_world_model
 
         self._decoded_subgoal_shape = self._initial_subgoal().shape
+        
+        # Determine if intrinsic motivation should be used for value heads
+        use_intrinsic = (
+            hasattr(config, 'intrinsic_motivation') 
+            and config.intrinsic_motivation.get("enabled", False)
+        )
+        
         self._task_behavior = models.ImagBehavior(
             config,
             self._wm,
@@ -1052,6 +1060,7 @@ class SubActor(nn.Module):
             config.behavior_stop_grad,
             use_subgoal=config.use_subgoal,
             use_novelty=config.novelty_reward_weight > 0,
+            use_intrinsic=use_intrinsic,
         )
 
         self.subgoal_autoencoder = models.SubgoalAutoencoder(
@@ -1066,6 +1075,31 @@ class SubActor(nn.Module):
             unimix_ratio=config.unimix_ratio,
             config=config,
         )
+        
+        # Initialize intrinsic motivation module if enabled
+        self._use_intrinsic_motivation = (
+            hasattr(config, 'intrinsic_motivation') 
+            and config.intrinsic_motivation.get("enabled", False)
+        )
+        if self._use_intrinsic_motivation:
+            # Compute feature size for intrinsic motivation
+            if config.dyn_discrete:
+                feat_size = config.dyn_stoch * config.dyn_discrete + config.dyn_deter
+            else:
+                feat_size = config.dyn_stoch + config.dyn_deter
+            
+            self._intrinsic_motivation = im.IntrinsicMotivationManager(
+                feat_size=feat_size,
+                subgoal_shape=config.subgoal_shape,
+                config=config,
+            ).to(config.device)
+            print(f"[{name}] Intrinsic motivation enabled with: "
+                  f"RND={config.intrinsic_motivation.get('use_rnd', True)}, "
+                  f"Count={config.intrinsic_motivation.get('use_episodic_count', True)}, "
+                  f"Hierarchical={config.intrinsic_motivation.get('use_hierarchical_bonus', True)}")
+        else:
+            self._intrinsic_motivation = None
+        
         self._state = None
         if config.compile and hasattr(torch, "compile"):
             print("compiling models....")
@@ -1227,6 +1261,17 @@ class SubActor(nn.Module):
                 for i in range(len(self._last_subgoal)):
                     self._last_subgoal[i] *= mask[i]
             self._summed_reward = np.zeros(self._config.envs["amount"])
+            
+            # Reset episodic intrinsic motivation for environments that are done
+            if self._use_intrinsic_motivation and self._intrinsic_motivation is not None:
+                # Convert reset to tensor if it's a numpy array
+                if isinstance(reset, np.ndarray):
+                    reset_tensor = torch.from_numpy(reset)
+                else:
+                    reset_tensor = reset
+                reset_indices = torch.where(reset_tensor)[0].tolist()
+                if len(reset_indices) > 0:
+                    self._intrinsic_motivation.reset_episode(reset_indices)
 
         if not should_update:
             return self._last_policy_output, state
@@ -1369,11 +1414,25 @@ class SubActor(nn.Module):
         else:
             post = data
         start = post
-        reward = lambda f, s, a: {
-            "extrinsic": self._wm.heads["reward"](self._wm.dynamics.get_feat(s)).mode(),
-            "subgoal": self._subgoal_reward(s, start["subgoal"]),
-            "novelty": self._novelty_reward(s),
-        }
+        
+        # Define reward function with optional intrinsic motivation
+        def compute_rewards(f, s, a):
+            rewards = {
+                "extrinsic": self._wm.heads["reward"](self._wm.dynamics.get_feat(s)).mode(),
+                "subgoal": self._subgoal_reward(s, start["subgoal"]),
+                "novelty": self._novelty_reward(s),
+            }
+            # Add intrinsic motivation rewards if enabled
+            if self._use_intrinsic_motivation and self._intrinsic_motivation is not None:
+                feat = self._wm.dynamics.get_feat(s)
+                subgoal = start.get("subgoal", None)
+                intrinsic_reward = self._intrinsic_motivation.compute_intrinsic_reward(
+                    feat, subgoals=subgoal
+                )
+                rewards["intrinsic"] = intrinsic_reward
+            return rewards
+        
+        reward = compute_rewards
         self._task_behavior.train()
         if self._config.hierarchical_world_models or self._name == "Subactor-0":
             with timer:
@@ -1393,6 +1452,15 @@ class SubActor(nn.Module):
         metrics["subgoal_traintime"] = timer.elapsed_time
         metrics.update(mets)
         metrics["task_traintime"] = timer.elapsed_time
+        
+        # Train intrinsic motivation module if enabled
+        if self._use_intrinsic_motivation and self._intrinsic_motivation is not None:
+            with timer:
+                feat = self._wm.dynamics.get_feat(start)
+                im_metrics = self._intrinsic_motivation.train_step(feat)
+                metrics.update(im_metrics)
+                metrics.update(self._intrinsic_motivation.get_metrics())
+            metrics["intrinsic_motivation_traintime"] = timer.elapsed_time
 
         if self._config.expl_behavior != "greedy":
             mets = self._expl_behavior.train(start, context, data)[-1]
