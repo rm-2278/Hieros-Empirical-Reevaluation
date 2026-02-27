@@ -201,14 +201,17 @@ def main(config):
     if (logdir / "latest_model.pt").exists():
         agent.load_state_dict(torch.load(logdir / "latest_model.pt"))
         agent._should_pretrain._once = False
-    if config.model_name == "dreamer":
-        agent.eval()
-    else:
+    # Note: Dreamer doesn't use PyTorch's train/eval modes - it manages training state internally
+    # Calling agent.eval() would conflict with Dreamer's custom train(data, state) method
+    if config.model_name != "dreamer":
         agent.set_eval()
     if config.pretrain:
-        print("pretraining for", config.pretrain, "steps...")
-        for _ in tqdm(range(config.pretrain)):
-            agent.train()
+        if config.model_name == "dreamer":
+            print("Note: Pretrain functionality not available for Dreamer model (skipping)")
+        else:
+            print("pretraining for", config.pretrain, "steps...")
+            for _ in tqdm(range(config.pretrain)):
+                agent.train()
     config.batch_steps = config.batch_size * config.batch_length
 
     embodied.run.train_eval(agent, train_envs, eval_envs, None, None, logger, config)
