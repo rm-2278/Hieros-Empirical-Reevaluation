@@ -362,6 +362,7 @@ class ImagBehavior(nn.Module):
         reward=None,
         use_subgoal=False,
         use_novelty=False,
+        use_intrinsic=False,
     ):
         super(ImagBehavior, self).__init__()
         self._use_amp = True if config.precision == 16 else False
@@ -369,6 +370,7 @@ class ImagBehavior(nn.Module):
         self._world_model = world_model
         self._stop_grad_actor = stop_grad_actor
         self._use_subgoal = use_subgoal
+        self._use_intrinsic = use_intrinsic
         self._reward = reward
         if not use_subgoal:
             print("not using subgoal, setting shape to 0")
@@ -409,6 +411,8 @@ class ImagBehavior(nn.Module):
             heads.append("subgoal")
         if use_novelty:
             heads.append("novelty")
+        if use_intrinsic:
+            heads.append("intrinsic")
         for head in heads:
             if config.value_head == "symlog_disc":
                 self._value_heads[head] = networks.MLP(
@@ -457,16 +461,26 @@ class ImagBehavior(nn.Module):
             )
             for head in self._value_heads
         }
+        # Get intrinsic reward weight from config if available
+        intrinsic_weight = 0.0
+        if hasattr(config, 'intrinsic_motivation') and config.intrinsic_motivation.get("enabled", False):
+            intrinsic_weight = (
+                config.intrinsic_motivation.get("rnd_weight", 0.5) +
+                config.intrinsic_motivation.get("count_weight", 0.3) +
+                config.intrinsic_motivation.get("hierarchical_weight", 0.2)
+            )
         self._value_weights = {
             "extrinsic": config.extrinsic_reward_weight,
             "subgoal": config.subgoal_reward_weight,
             "novelty": config.novelty_reward_weight,
+            "intrinsic": intrinsic_weight,
         }
         if self._config.reward_EMA:
             self.reward_ema = {
                 head: RewardEMA(device=self._config.device)
                 for head in self._value_heads
             }
+
 
     def _value_input(self, feature, subgoal):
         if not self._use_subgoal:

@@ -39,6 +39,49 @@ defaults:
   symlog_subactor_obs: True
   # symlog_novelty_reward: true
   novelty_only_higher_level: false
+  
+  # Intrinsic Motivation Settings (Option A: Enhanced Exploration Module)
+  # Addresses exploration collapse in sequential tasks like pinpad-easy
+  intrinsic_motivation:
+    # Enable/disable intrinsic motivation modules
+    enabled: false
+    use_rnd: true              # Random Network Distillation - persistent curiosity
+    use_episodic_count: true   # Episodic count-based exploration
+    use_hierarchical_bonus: true  # Hierarchical exploration bonus for diverse subgoals
+    
+    # RND settings (reduced defaults to prevent OOM)
+    rnd_weight: 0.5            # Weight for RND intrinsic reward
+    rnd_hidden_dim: 128        # Hidden layer size for RND networks (reduced from 256)
+    rnd_output_dim: 64         # Output embedding dimension (reduced from 128)
+    rnd_num_layers: 2          # Number of layers in predictor network (reduced from 3)
+    
+    # Count-based exploration settings
+    count_weight: 0.3          # Weight for count-based intrinsic reward
+    count_num_bins: 32         # Number of bins for LSH-based counting
+    count_k_neighbors: 10      # K neighbors for kernel-based counting
+    max_memory_per_env: 5000   # Max episodic memory entries per environment
+    max_hash_entries_per_env: 10000  # Max hash entries per environment
+    
+    # Hierarchical exploration bonus settings
+    hierarchical_weight: 0.2   # Weight for hierarchical diversity bonus
+    hierarchical_hidden_dim: 64  # Reduced from 128
+    max_history: 500           # Max subgoal history for diversity computation (reduced from 1000)
+    
+    # Exploration schedule
+    exploration_schedule: "constant"  # Options: constant, linear_decay, exponential_decay
+    exploration_decay_steps: 100000   # Steps over which to decay exploration
+    
+  # RND optimizer settings (separate from main model optimizer)
+  rnd:
+    lr: 1e-4
+    opt_eps: 1e-8
+    grad_clip: 100.0
+    weight_decay: 0
+  
+  # Hierarchical exploration settings
+  hierarchical_exploration:
+    max_history: 500
+  
   add_hierarchy_every: 1
   use_subgoal: true
   max_hierarchy: 2
@@ -380,6 +423,152 @@ pinpad-easy-entropy:
   wandb_name: 'pinpad-easy-entropy'
   encoder: {mlp_keys: '$^', cnn_keys: 'image'}
   decoder: {mlp_keys: '$^', cnn_keys: 'image'}
+
+# Enhanced exploration configurations using Option A: Intrinsic Motivation
+pinpad-easy-rnd:
+  # RND-based exploration for pinpad-easy
+  # Uses Random Network Distillation for persistent curiosity
+  steps: 400000
+  envs:
+    amount: 8
+  action_repeat: 1
+  actor_dist: 'onehot'
+  imag_gradient: 'reinforce'
+  eval_every: 100000
+  eval_eps: 10
+  log_every: 5000
+  batch_size: 16
+  batch_length: 32
+  train_ratio: 16
+  imag_horizon: 32
+  actor_entropy: '1e-3'
+  wandb_name: 'pinpad-easy-rnd'
+  encoder: {mlp_keys: '$^', cnn_keys: 'image'}
+  decoder: {mlp_keys: '$^', cnn_keys: 'image'}
+  intrinsic_motivation:
+    enabled: true
+    use_rnd: true
+    use_episodic_count: false
+    use_hierarchical_bonus: false
+    rnd_weight: 0.5
+    exploration_schedule: "constant"
+
+pinpad-easy-count:
+  # Count-based exploration for pinpad-easy
+  # Uses episodic state counting for explicit novelty seeking
+  steps: 400000
+  envs:
+    amount: 8
+  action_repeat: 1
+  actor_dist: 'onehot'
+  imag_gradient: 'reinforce'
+  eval_every: 100000
+  eval_eps: 10
+  log_every: 5000
+  batch_size: 16
+  batch_length: 32
+  train_ratio: 16
+  imag_horizon: 32
+  actor_entropy: '1e-3'
+  wandb_name: 'pinpad-easy-count'
+  encoder: {mlp_keys: '$^', cnn_keys: 'image'}
+  decoder: {mlp_keys: '$^', cnn_keys: 'image'}
+  intrinsic_motivation:
+    enabled: true
+    use_rnd: false
+    use_episodic_count: true
+    use_hierarchical_bonus: false
+    count_weight: 0.5
+    exploration_schedule: "constant"
+
+pinpad-easy-hierarchical:
+  # Hierarchical exploration bonus for pinpad-easy
+  # Rewards higher-level actors for diverse subgoal setting
+  steps: 400000
+  envs:
+    amount: 8
+  action_repeat: 1
+  actor_dist: 'onehot'
+  imag_gradient: 'reinforce'
+  eval_every: 100000
+  eval_eps: 10
+  log_every: 5000
+  batch_size: 16
+  batch_length: 32
+  train_ratio: 16
+  imag_horizon: 32
+  actor_entropy: '1e-3'
+  wandb_name: 'pinpad-easy-hierarchical'
+  encoder: {mlp_keys: '$^', cnn_keys: 'image'}
+  decoder: {mlp_keys: '$^', cnn_keys: 'image'}
+  intrinsic_motivation:
+    enabled: true
+    use_rnd: false
+    use_episodic_count: false
+    use_hierarchical_bonus: true
+    hierarchical_weight: 0.5
+    exploration_schedule: "constant"
+
+pinpad-easy-full-exploration:
+  # Full intrinsic motivation suite for pinpad-easy
+  # Combines RND, count-based, and hierarchical exploration
+  steps: 400000
+  envs:
+    amount: 8
+  action_repeat: 1
+  actor_dist: 'onehot'
+  imag_gradient: 'reinforce'
+  eval_every: 100000
+  eval_eps: 10
+  log_every: 5000
+  batch_size: 16
+  batch_length: 32
+  train_ratio: 16
+  imag_horizon: 32
+  actor_entropy: '1e-3'
+  wandb_name: 'pinpad-easy-full-exploration'
+  encoder: {mlp_keys: '$^', cnn_keys: 'image'}
+  decoder: {mlp_keys: '$^', cnn_keys: 'image'}
+  intrinsic_motivation:
+    enabled: true
+    use_rnd: true
+    use_episodic_count: true
+    use_hierarchical_bonus: true
+    rnd_weight: 0.3
+    count_weight: 0.2
+    hierarchical_weight: 0.2
+    exploration_schedule: "linear_decay"
+    exploration_decay_steps: 200000
+
+pinpad-easy-scheduled:
+  # Scheduled exploration decay for pinpad-easy
+  # High exploration early, then gradually decay to focus on exploitation
+  steps: 400000
+  envs:
+    amount: 8
+  action_repeat: 1
+  actor_dist: 'onehot'
+  imag_gradient: 'reinforce'
+  eval_every: 100000
+  eval_eps: 10
+  log_every: 5000
+  batch_size: 16
+  batch_length: 32
+  train_ratio: 16
+  imag_horizon: 32
+  actor_entropy: '3e-3'  # Higher early entropy
+  wandb_name: 'pinpad-easy-scheduled'
+  encoder: {mlp_keys: '$^', cnn_keys: 'image'}
+  decoder: {mlp_keys: '$^', cnn_keys: 'image'}
+  intrinsic_motivation:
+    enabled: true
+    use_rnd: true
+    use_episodic_count: true
+    use_hierarchical_bonus: false
+    rnd_weight: 0.5
+    count_weight: 0.3
+    exploration_schedule: "linear_decay"
+    exploration_decay_steps: 150000
 
 optuna:
   task: 'pinpad_three'

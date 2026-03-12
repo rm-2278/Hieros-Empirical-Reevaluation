@@ -1,0 +1,46 @@
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - --configs
+  - pinpad-easy-rnd
+  - s5_no_mlp
+  - s5_silu_act
+  - rm_model_size
+  - additional_inputs
+  - --max_hierarchy
+  - "3"
+  - --subgoal_visualization
+  - "True"
+  - --wandb_logging
+  - "True"
+  - --dynamics_model
+  - s5
+  - --use_subgoal
+  - True
+  - --decompress_subgoal_for_input
+  - False
+  - --subgoal_reward_weight
+  - 0.3
+  - --replay_temperature
+  - 0.3
+  - ${args}
+
+method: grid
+metric:
+  goal: maximize
+  name: episode/score
+name: pinpad-easy-rnd-exploration_sweep
+parameters:
+  seed:
+    values: [42, 41020, 718920]
+  task:
+    values: [
+      "pinpad-easy_three"
+    ]
+  subactor_update_every:
+    values: [8]
+  train_ratio:
+    values: [16]
+  
+program: hieros/train.py
