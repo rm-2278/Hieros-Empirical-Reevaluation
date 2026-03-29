@@ -64,8 +64,16 @@ class Driver:
         acts = {k: convert(v) for k, v in acts.items()}
         if obs["is_last"].any():
             mask = 1 - obs["is_last"]
-            acts = {k: v * self._expand(mask, len(v.shape)) for k, v in acts.items()}
-        acts["reset"] = obs["is_last"].copy()
+            acts = {k: v * self._expand(mask, len(v.shape)) for k, v in acts.items() if k != "reset"}
+        
+        # Use agent's reset decision OR environment's is_last signal
+        # This allows agent to reset early if desired, while still respecting episode termination
+        if "reset" in acts:
+            acts["reset"] = acts["reset"] | obs["is_last"].copy()
+        else:
+            # Fallback for backward compatibility
+            acts["reset"] = obs["is_last"].copy()
+        
         self._acts = acts
         trns = {**obs, **acts}
         # print_current_usage("4")
